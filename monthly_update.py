@@ -24,7 +24,7 @@ T_FULL = {
 			'so':'sodankyla01',
 			'iz':'izana01',
 			'if':'indianapolis01',
-			'df':'edwards01',
+                        'df':'edwards01',
 			'js':'saga01',
 			'fc':'fourcorners01',
 			'ci':'pasadena01',
@@ -42,7 +42,7 @@ path = '/data/tccon/temp'
 
 os.chdir(path)
 site_files = glob.glob('*.nc')
-token = os.environ['TINDTOK']
+#token = os.environ['TINDTOK']
 
 outsites = open('/data/tccon/temp/sites.csv','w')
 api_url = api_url = "https://data.caltech.edu/api/record/"
@@ -146,7 +146,7 @@ for sitef in site_files:
     new.append(meta)
     metadata["relatedIdentifiers"] = new
 
-    Caltechdata_edit(token,ids[sname],copy.deepcopy(metadata),files,['nc'])
+    #Caltechdata_edit(token,ids[sname],copy.deepcopy(metadata),files,['nc'])
     #print(metadata['identifier'])
 
     doi = metadata['identifier']['identifier']
@@ -169,11 +169,15 @@ for sitef in site_files:
                 c.pop('contributorEmail')
     if 'publicationDate' in metadata:
         metadata.pop('publicationDate')
+
+    outfile = open('metadata/tccon.ggg2014.'+sname+'.'+version[sname]+".json",'w')
+    outfile.write(json.dumps(metadata))
+
     #Stripping because of bad schema validator
     for t in metadata['titles']:
         if 'titleType' in t:
             t.pop('titleType')
 
     #print(doi,ids[site])
-    update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(ids[sname]))
+    #update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(ids[sname]))
     
