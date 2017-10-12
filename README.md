@@ -9,6 +9,7 @@ ezid_update
 
 Included scripts:
 
+get_metadata.py - Get DataCite compliant metadata from CaltechDATA
 submit_R0.py, submit_R1.py - Create a bunch of CaltechDATA records
 submit_site.py - Create a single CaltechDATA record
 edit_R0.py, edit_R1.py, monthly_update.py - Edit a bunch of CaltechDATA records
