@@ -42,7 +42,7 @@ path = '/data/tccon/temp'
 
 os.chdir(path)
 site_files = glob.glob('*.nc')
-#token = os.environ['TINDTOK']
+token = os.environ['TINDTOK']
 
 outsites = open('/data/tccon/temp/sites.csv','w')
 api_url = api_url = "https://data.caltech.edu/api/record/"
@@ -56,6 +56,8 @@ for row in site_ids:
     version[row[0]]=row[2]
 
 for sitef in site_files:
+
+    #Gather information about release
     skey = sitef[0:2]
     sname = T_FULL[skey]
     email =\
@@ -67,22 +69,11 @@ for sitef in site_files:
     subprocess.run(['create_readme_contents_tccon-data',sitef],check=True,stdout=outf)
     files = {'README.txt',sitef}
     
-    #Link to license file
-    c = session()
-    existing = c.get(api_url + ids[sname])
-    file_info = existing.json()["metadata"]
-    fids = []
-    for f in files: #Check if new files match existing
-        for ex in file_info["electronic_location_and_access"]:
-                if 'electronic_name' in ex:
-                        if ex['electronic_name'][0] == 'LICENSE.txt':
-                            rights_link = ex['uniform_resource_identifier']
+    #Now read in metadata file
     mfname =\
     '/data/tccon/metadata/tccon.ggg2014.'+sname+'.'+version[sname]+".json"
     metaf = open(mfname,'r')
     metadata = json.load(metaf)
-    metadata['publisher'] = "CaltechDATA"
-    metadata['publicationYear'] = "2017"
     cred = sitef[2:6]+'-'+sitef[6:8]+'-'+sitef[8:10]+\
                     '/'+sitef[11:15]+'-'+sitef[15:17]+'-'+sitef[17:19]
     for d in metadata['dates']:
@@ -90,64 +81,14 @@ for sitef in site_files:
             d['date'] = cred
         if d['dateType'] == 'Updated':
             d['date'] = datetime.date.today().isoformat()
-    if 'geoLocations' in metadata:
-        metadata['geoLocations'][0]['geoLocationPoint']['pointLatitude']=\
-                    float(metadata['geoLocations'][0]['geoLocationPoint']['pointLatitude'])
-        metadata['geoLocations'][0]['geoLocationPoint']['pointLongitude']=\
-                    float(metadata['geoLocations'][0]['geoLocationPoint']['pointLongitude'])
     contributors = metadata['contributors']
-    new = []
-    metadata['rightsList'][0]['rightsURI']=rights_link
     for c in contributors:
-        if c['contributorType'] == 'HostingInstitution':
-            meta = {'nameIdentifiers': [{'nameIdentifierScheme': 'GRID',
-                    'nameIdentifier': 'grid.20861.3d', 'schemeURI':
-                    'https://www.grid.ac/institutes/'}], 'contributorName':
-                    'California Institute of Techonolgy, Pasadena, CA (US)',
-                    'contributorType': 'HostingInstitution'}
-            new.append(meta)
-        else:
-            new.append(c)
-    meta = {'contributorEmail': email,
-            'contributorType': 'ContactPerson',
-            'contributorName': contact}
-    new.append(meta)
-    metadata['contributors'] = new
-    related = metadata['relatedIdentifiers']
-    new = []
-    for r in related:
-        if r['relatedIdentifier']!="http://tccon.ornl.gov/":
-            new.append(r)
-    if version[sname] != 'R0':
-        newf = glob.glob('/data/tccon/metadata/tccon.ggg2014.'+sname+".R0.json")[0]
-        newf = open(newf,"r")
-        newm = json.load(newf)
-        meta = {"relatedIdentifier": newm["identifier"]["identifier"],
-                    "relationType": "IsNewVersionOf",
-                    "relatedIdentifierType": "DOI"}
-        new.append(meta)
+        if c['contributorType'] == 'ContactPerson':
+            c['contributorEmail'] = email
+            c['contributorName'] = contact
 
-    meta = {"relatedIdentifier":
-        "https://tccon-wiki.caltech.edu/Network_Policy/Data_Use_Policy/Data_Description",
-                "relationType": "IsDocumentedBy",
-                "relatedIdentifierType":"URL"}
-    new.append(meta)
-    meta = {"relatedIdentifier": "https://tccon-wiki.caltech.edu/Sites",
-                "relationType": "IsDocumentedBy",
-                "relatedIdentifierType":"URL"}
-    new.append(meta)
-    meta = {"relatedIdentifier": "10.14291/TCCON.GGG2014",
-            "relationType": "IsPartOf",
-            "relatedIdentifierType":"DOI"}
-    new.append(meta)
-    meta = {"relatedIdentifier": "http://tccondata.org",
-                "relationType": "IsPartOf",
-                "relatedIdentifierType":"URL"}
-    new.append(meta)
-    metadata["relatedIdentifiers"] = new
-
-    #Caltechdata_edit(token,ids[sname],copy.deepcopy(metadata),files,['nc'])
     #print(metadata['identifier'])
+    Caltechdata_edit(token,ids[sname],copy.deepcopy(metadata),files,['nc'])
 
     doi = metadata['identifier']['identifier']
     for t in metadata['titles']:
@@ -158,9 +99,9 @@ for sitef in site_files:
     second = split[1]
 
     outsites.write(title+'['+sname+'],https://doi.org/'+doi+','+first+','+second+'\n')
-    
-    #Need dummy doi for testing
-    print( metadata['identifier']['identifier'].encode("utf-8"))
+ 
+    #print( metadata['identifier']['identifier'].encode("utf-8"))
+    #Dummy doi for testing
     #doi='10.5072/FK2NV9HP6P'
 
     #Strip contributor emails
@@ -180,4 +121,37 @@ for sitef in site_files:
 
     #print(doi,ids[site])
     #update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(ids[sname]))
+
+#Update .tgz file
+#First set the CaltechDATA Identifier for the .tgz record
+tgz_id = 293
+#Need to update date and file
+mfname ='/data/tccon/metadata/tccon.ggg2014.json'
+metaf = open(mfname,'r')
+metadata = json.load(metaf)
+for d in metadata['dates']:
+    if d['dateType'] == 'Updated':
+        d['date'] = datetime.date.today().isoformat()
+files = ['/data/tccon/temp/tccon.latest.public.tgz']
+Caltechdata_edit(token,tgz_id,copy.deepcopy(metadata),files)
+
+doi = metadata['identifier']['identifier']
+
+#Strip contributor emails
+if 'contributors' in metdata:
+    for c in metadata['contributors']:
+        if 'contributorEmail' in c:
+            c.pop('contributorEmail')
+if 'publicationDate' in metadata:
+    metadata.pop('publicationDate')
+
+#Stripping because of bad schema validator
+for t in metadata['titles']:
+    if 'titleType' in t:
+        t.pop('titleType')
+
+#update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(tgz_id))
+
+#Move files into place, delete temp files
+#TODO
     
