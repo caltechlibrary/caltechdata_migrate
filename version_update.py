@@ -1,7 +1,8 @@
 from caltechdata_write import Caltechdata_edit 
+from caltechdata_write import Caltechdata_write
 from update_doi import update_doi
-from requests import session
-import os,glob,json,csv,subprocess,datetime,copy
+import requests
+import os,glob,json,csv,subprocess,datetime,copy,argparse
 
 T_FULL = {
 			'pa':'parkfalls01',
@@ -41,13 +42,16 @@ T_FULL = {
 path = '/data/tccon/temp'
 
 os.chdir(path)
-if os.path.exists('metadata') == False:
-    os.mkdir('metadata')
-site_files = glob.glob('*.nc')
 token = os.environ['TINDTOK']
+parser = argparse.ArgumentParser(description=\
+        "update_site releases a new version of data for a TCCON site")
+parser.add_argument('sid', metavar='ID', type=str,nargs='+',\
+                    help='The TCCON two letter Site ID (e.g. pa for park falls)')
+args = parser.parse_args()
 
 outsites = open('/data/tccon/temp/sites.csv','w')
 api_url = api_url = "https://data.caltech.edu/api/record/"
+
 #Read in site id file with CaltechDATA IDs
 infile = open("/data/tccon/site_ids.csv")
 site_ids = csv.reader(infile)
@@ -57,11 +61,84 @@ for row in site_ids:
     ids[row[0]]=row[1]
     version[row[0]]=row[2]
 
-for sitef in site_files:
-
+#For each new site release
+for skey in args.sid:
     #Gather information about release
-    skey = sitef[0:2]
     sname = T_FULL[skey]
+    
+    new_revnum = int(version[sname].split('R')[1])+1
+    new_version = 'R'+str(new_revnum)
+    new_identifier = '10.14291/tccon.ggg2014.'+sname+'.'+new_version
+
+    #First update old record
+    mfname =\
+    '/data/tccon/metadata/tccon.ggg2014.'+sname+'.'+version[sname]+".json"
+    metaf = open(mfname,'r')
+    metadata = json.load(metaf)
+    meta = {"relatedIdentifier": new_identifier,
+            "relationType": "IsPreviousVersionOf",
+            "relatedIdentifierType":"DOI"}
+    metadata['relatedIdentifiers'].append(meta)
+
+    r = requests.get('https://data.caltech.edu/api/record/'+ids[sname])
+    exmet = r.json()['metadata']
+    for f in exmet['electronic_location_and_access']:
+        if f['electronic_name'][0] == 'README.txt':
+            r = requests.get(f['uniform_resource_identifier'])
+            readme = r.text
+    outfile = open('README.txt','w')
+    outfile.write('This file is obsolete.  An updated version is available at ')
+    outfile.write('https://doi.org/'+new_identifier+'\n\n')
+    outfile.write(readme)
+    outfile.close()
+
+    #Write updated metadata
+    mfname =\
+    'tccon.ggg2014.'+sname+'.'+version[sname]+".json"
+    outfile = open(mfname,'w')
+    outfile.write(json.dumps(metadata))
+    outfile.close()
+
+    Caltechdata_edit(token,ids[sname],copy.deepcopy(metadata),['README.txt'])
+
+    #Strip contributor emails
+    for c in metadata['contributors']:
+            if 'contributorEmail' in c:
+                c.pop('contributorEmail')
+    if 'publicationDate' in metadata:
+        metadata.pop('publicationDate')
+
+    #Stripping because of bad schema validator
+    for t in metadata['titles']:
+        if 'titleType' in t:
+            t.pop('titleType')
+
+    doi = metadata['identifier']['identifier']
+
+    #print(doi,ids[site])
+    ###update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(ids[sname]))
+
+    #Get new file
+    sitef = glob.glob(skey+'*.nc')
+    if len(sitef) != 1:
+        print("Cannot find public site file in /data/tccon/temp")
+        exit()
+    else:
+        sitef = sitef[0]
+
+    #Re-read metadata
+    mfname =\
+    '/data/tccon/metadata/tccon.ggg2014.'+sname+'.'+version[sname]+".json"
+    metaf = open(mfname,'r')
+    metadata = json.load(metaf)
+    meta = {"relatedIdentifier": doi,
+            "relationType":"IsNewVersionOf",
+            "relatedIdentifierType":"DOI"}
+    metadata['relatedIdentifiers'].append(meta)
+    metadata['identifier']['identifier'] = new_identifier
+    metadata['version'] = new_version
+
+    #Generate new readme
     email =\
     subprocess.check_output(['get_site_email',skey]).decode("utf-8").rstrip()
     contact =\
@@ -69,15 +146,11 @@ for sitef in site_files:
     # Run scrit tp generate README
     outf = open('README.txt','w')
     subprocess.run(['create_readme_contents_tccon-data',sitef],check=True,stdout=outf)
-    files = {'README.txt',sitef}
     
-    #Now read in metadata file
-    mfname =\
-    '/data/tccon/metadata/tccon.ggg2014.'+sname+'.'+version[sname]+".json"
-    metaf = open(mfname,'r')
-    metadata = json.load(metaf)
+    files = ['README.txt',sitef]
     cred = sitef[2:6]+'-'+sitef[6:8]+'-'+sitef[8:10]+\
                     '/'+sitef[11:15]+'-'+sitef[15:17]+'-'+sitef[17:19]
+    metadata['publicationDate'] = datetime.date.today().isoformat()
     for d in metadata['dates']:
         if d['dateType'] == 'Collected':
             d['date'] = cred
@@ -90,11 +163,10 @@ for sitef in site_files:
             c['contributorName'] = contact
 
     #print(metadata['identifier'])
-    Caltechdata_edit(token,ids[sname],copy.deepcopy(metadata),files,['nc'])
-    outfile = open('metadata/tccon.ggg2014.'+sname+'.'+version[sname]+".json",'w')
-    outfile.write(json.dumps(metadata))
+    Caltechdata_write(copy.deepcopy(metadata),token,files)
 
     doi = metadata['identifier']['identifier']
+
     for t in metadata['titles']:
         if 'titleType' not in t:
             title = t['title'].split('from')[1].split(',')[0].strip()
@@ -115,15 +187,24 @@ for sitef in site_files:
     if 'publicationDate' in metadata:
         metadata.pop('publicationDate')
 
+    outfile = open('metadata/tccon.ggg2014.'+sname+'.'+new_version+".json",'w')
+    outfile.write(json.dumps(metadata))
+
     #Stripping because of bad schema validator
     for t in metadata['titles']:
         if 'titleType' in t:
             t.pop('titleType')
 
+    ###NEED to strip CaltechDATA ID and UPDATE Key
+
     #print(doi,ids[site])
-    update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(ids[sname]))
+    ###update_doi(doi,metadata,'https://data.caltech.edu/records/')
 
 outsites.close()
+
+exit()
+
+### NEED TO SCRIPT TGZ CREATION
 
 #Update .tgz file
 #First set the CaltechDATA Identifier for the .tgz record
@@ -153,10 +234,8 @@ for t in metadata['titles']:
     if 'titleType' in t:
         t.pop('titleType')
 
-update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(tgz_id))
+##update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(tgz_id))
 
 #Move temp files
 os.rename('/data/tccon/sites.csv','/data/tccon/old/sites.csv')
 os.rename('/data/tccon/temp/sites.csv','/data/tccon/sites.csv')
-#os.rename('/data/tccon/temp','/data/tccon/old/'+datetime.date.today().isoformat())
-#os.mkdir('/data/tccon/temp')   
