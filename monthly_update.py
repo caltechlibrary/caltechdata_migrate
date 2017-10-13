@@ -120,7 +120,9 @@ for sitef in site_files:
             t.pop('titleType')
 
     #print(doi,ids[site])
-    #update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(ids[sname]))
+    update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(ids[sname]))
+
+outsites.close()
 
 #Update .tgz file
 #First set the CaltechDATA Identifier for the .tgz record
@@ -138,7 +140,7 @@ Caltechdata_edit(token,tgz_id,copy.deepcopy(metadata),files)
 doi = metadata['identifier']['identifier']
 
 #Strip contributor emails
-if 'contributors' in metdata:
+if 'contributors' in metadata:
     for c in metadata['contributors']:
         if 'contributorEmail' in c:
             c.pop('contributorEmail')
@@ -150,8 +152,10 @@ for t in metadata['titles']:
     if 'titleType' in t:
         t.pop('titleType')
 
-#update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(tgz_id))
+update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(tgz_id))
 
-#Move files into place, delete temp files
-#TODO
-    
+#Move temp files
+os.rename('/data/tccon/sites.csv','/data/tccon/old/sites.csv')
+os.rename('/data/tccon/temp/sites.csv','/data/tccon/sites.csv')
+os.rename('/data/tccon/temp','/data/tccon/old/'+datetime.date.today().isoformat())
+os.mkdir('/data/tccon/temp')   
