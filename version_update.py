@@ -1,6 +1,7 @@
 from caltechdata_write import Caltechdata_edit 
 from caltechdata_write import Caltechdata_write
 from update_doi import update_doi
+from create_doi import create_doi
 import requests
 import os,glob,json,csv,subprocess,datetime,copy,argparse
 
@@ -49,7 +50,6 @@ parser.add_argument('sid', metavar='ID', type=str,nargs='+',\
                     help='The TCCON two letter Site ID (e.g. pa for park falls)')
 args = parser.parse_args()
 
-outsites = open('/data/tccon/temp/sites.csv','w')
 api_url = api_url = "https://data.caltech.edu/api/record/"
 
 #Read in site id file with CaltechDATA IDs
@@ -60,6 +60,9 @@ version = {}
 for row in site_ids:
     ids[row[0]]=row[1]
     version[row[0]]=row[2]
+infile.close()
+
+outsites = []
 
 #For each new site release
 for skey in args.sid:
@@ -94,7 +97,7 @@ for skey in args.sid:
 
     #Write updated metadata
     mfname =\
-    'tccon.ggg2014.'+sname+'.'+version[sname]+".json"
+    'metadata/tccon.ggg2014.'+sname+'.'+version[sname]+".json"
     outfile = open(mfname,'w')
     outfile.write(json.dumps(metadata))
     outfile.close()
@@ -116,7 +119,7 @@ for skey in args.sid:
     doi = metadata['identifier']['identifier']
 
     #print(doi,ids[site])
-    ###update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(ids[sname]))
+    update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(ids[sname]))
 
     #Get new file
     sitef = glob.glob(skey+'*.nc')
@@ -147,7 +150,17 @@ for skey in args.sid:
     outf = open('README.txt','w')
     subprocess.run(['create_readme_contents_tccon-data',sitef],check=True,stdout=outf)
     
-    files = ['README.txt',sitef]
+    #Generate new license
+    lic_f = open("/data/tccon/license.txt","r")
+    lic_t = open("/data/tccon/license_tag.txt","r")
+    lic = lic_f.read()
+    lic = lic + subprocess.check_output(['get_site_reference',sname]).decode("utf-8").rstrip()
+    lic = lic + '\n\n' + lic_t.read()
+    outf = open('LICENSE.txt','w')
+    outf.write(lic)
+    outf.close()
+
+    files = ['README.txt','LICENSE.txt',sitef]
     cred = sitef[2:6]+'-'+sitef[6:8]+'-'+sitef[8:10]+\
                     '/'+sitef[11:15]+'-'+sitef[15:17]+'-'+sitef[17:19]
     metadata['publicationDate'] = datetime.date.today().isoformat()
@@ -156,6 +169,8 @@ for skey in args.sid:
             d['date'] = cred
         if d['dateType'] == 'Updated':
             d['date'] = datetime.date.today().isoformat()
+        if d['dateType'] == 'Created':
+            d['date'] = datetime.date.today().isoformat()
     contributors = metadata['contributors']
     for c in contributors:
         if c['contributorType'] == 'ContactPerson':
@@ -163,7 +178,10 @@ for skey in args.sid:
             c['contributorName'] = contact
 
     #print(metadata['identifier'])
-    Caltechdata_write(copy.deepcopy(metadata),token,files)
+    response = Caltechdata_write(copy.deepcopy(metadata),token,files)
+    print(response)
+    new_id = response.split('/')[4].split('.')[0]
+    print(new_id)
 
     doi = metadata['identifier']['identifier']
 
@@ -174,7 +192,7 @@ for skey in args.sid:
     first = split[0]
     second = split[1]
 
-    outsites.write(title+'['+sname+'],https://doi.org/'+doi+','+first+','+second+'\n')
+    outsites = title+' ['+sname+'],https://doi.org/'+doi+','+first+','+second+'\n'
  
     #print( metadata['identifier']['identifier'].encode("utf-8"))
     #Dummy doi for testing
@@ -195,16 +213,35 @@ for skey in args.sid:
         if 'titleType' in t:
             t.pop('titleType')
 
-    ###NEED to strip CaltechDATA ID and UPDATE Key
+    create_doi(doi,metadata,'https://data.caltech.edu/records/'+new_id)
 
-    #print(doi,ids[site])
-    ###update_doi(doi,metadata,'https://data.caltech.edu/records/')
+    # Update sites file
+    infile = open("/data/tccon/site_ids.csv")
+    site_ids = csv.reader(infile)
+    outstr = ''
+    for row in site_ids:
+        if row[0] == sname :
+            outstr = outstr+sname+','+new_id+','+new_version+'\n'
+        else:
+            outstr = outstr+','.join(row)+'\n'
+    infile.close()
+    os.rename('/data/tccon/site_ids.csv','/data/tccon/old/site_ids.csv')
+    out_id = open("/data/tccon/site_ids.csv",'w')
+    out_id.write(outstr)
+    out_id.close()
 
+#Update site list - fails with multiple sites
+existing = open('/data/tccon/sites.csv','r')
+sites = csv.reader(existing)
+outstr = ''
+for row in sites:
+    if row[0] == title+' ['+sname+']':
+        outstr = outstr + outsites
+    else:
+        outstr = outstr + ','.join(row)+'\n'
+outsites = open('/data/tccon/temp/sites.csv','w')
+outsites.write(outstr)
 outsites.close()
-
-exit()
-
-### NEED TO SCRIPT TGZ CREATION
 
 #Update .tgz file
 #First set the CaltechDATA Identifier for the .tgz record
@@ -216,7 +253,7 @@ metadata = json.load(metaf)
 for d in metadata['dates']:
     if d['dateType'] == 'Updated':
         d['date'] = datetime.date.today().isoformat()
-files = ['/data/tccon/temp/tccon.latest.public.tgz']
+files = ['tccon.latest.public.tgz']
 Caltechdata_edit(token,tgz_id,copy.deepcopy(metadata),files)
 
 doi = metadata['identifier']['identifier']
@@ -234,8 +271,10 @@ for t in metadata['titles']:
     if 'titleType' in t:
         t.pop('titleType')
 
-##update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(tgz_id))
+update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(tgz_id))
 
 #Move temp files
 os.rename('/data/tccon/sites.csv','/data/tccon/old/sites.csv')
 os.rename('/data/tccon/temp/sites.csv','/data/tccon/sites.csv')
+for mfile in glob.glob("metadata/*"):
+    os.rename(mfile,"/data/tccon/"+mfile)

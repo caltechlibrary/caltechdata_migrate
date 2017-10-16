@@ -102,7 +102,7 @@ for sitef in site_files:
     first = split[0]
     second = split[1]
 
-    outsites.write(title+'['+sname+'],https://doi.org/'+doi+','+first+','+second+'\n')
+    outsites.write(title+' ['+sname+'],https://doi.org/'+doi+','+first+','+second+'\n')
  
     #print( metadata['identifier']['identifier'].encode("utf-8"))
     #Dummy doi for testing
@@ -158,5 +158,7 @@ update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(tgz_id))
 #Move temp files
 os.rename('/data/tccon/sites.csv','/data/tccon/old/sites.csv')
 os.rename('/data/tccon/temp/sites.csv','/data/tccon/sites.csv')
+for mfile in glob.glob("metadata/*"):
+        os.rename(mfile,"/data/tccon/"+mfile)
 #os.rename('/data/tccon/temp','/data/tccon/old/'+datetime.date.today().isoformat())
 #os.mkdir('/data/tccon/temp')   
