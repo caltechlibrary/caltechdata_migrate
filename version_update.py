@@ -42,6 +42,9 @@ T_FULL = {
 
 path = '/data/tccon/temp'
 
+#Switch for test or production
+production = False
+
 os.chdir(path)
 token = os.environ['TINDTOK']
 parser = argparse.ArgumentParser(description=\
@@ -102,7 +105,7 @@ for skey in args.sid:
     outfile.write(json.dumps(metadata))
     outfile.close()
 
-    Caltechdata_edit(token,ids[sname],copy.deepcopy(metadata),['README.txt'])
+    Caltechdata_edit(token,ids[sname],copy.deepcopy(metadata),['README.txt'],[],production)
 
     #Strip contributor emails
     for c in metadata['contributors']:
@@ -117,6 +120,10 @@ for skey in args.sid:
             t.pop('titleType')
 
     doi = metadata['identifier']['identifier']
+
+    #Dummy doi for testing
+    if production == False:
+        doi='10.5072/FK2NV9HP6P'
 
     #print(doi,ids[site])
     update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(ids[sname]))
@@ -178,7 +185,7 @@ for skey in args.sid:
             c['contributorName'] = contact
 
     #print(metadata['identifier'])
-    response = Caltechdata_write(copy.deepcopy(metadata),token,files)
+    response = Caltechdata_write(copy.deepcopy(metadata),token,files,production)
     print(response)
     new_id = response.split('/')[4].split('.')[0]
     print(new_id)
@@ -196,7 +203,8 @@ for skey in args.sid:
  
     #print( metadata['identifier']['identifier'].encode("utf-8"))
     #Dummy doi for testing
-    #doi='10.5072/FK2NV9HP6P'
+    if production == False:
+        doi='10.5072/FK2NV9HP7P'
 
     #Strip contributor emails
     for c in metadata['contributors']:
@@ -225,10 +233,12 @@ for skey in args.sid:
         else:
             outstr = outstr+','.join(row)+'\n'
     infile.close()
-    os.rename('/data/tccon/site_ids.csv','/data/tccon/old/site_ids.csv')
-    out_id = open("/data/tccon/site_ids.csv",'w')
-    out_id.write(outstr)
-    out_id.close()
+
+    if production == True:
+        os.rename('/data/tccon/site_ids.csv','/data/tccon/old/site_ids.csv')
+        out_id = open("/data/tccon/site_ids.csv",'w')
+        out_id.write(outstr)
+        out_id.close()
 
 #Update site list - fails with multiple sites
 existing = open('/data/tccon/sites.csv','r')
@@ -254,7 +264,7 @@ for d in metadata['dates']:
     if d['dateType'] == 'Updated':
         d['date'] = datetime.date.today().isoformat()
 files = ['tccon.latest.public.tgz']
-Caltechdata_edit(token,tgz_id,copy.deepcopy(metadata),files)
+Caltechdata_edit(token,tgz_id,copy.deepcopy(metadata),files,[],production)
 
 doi = metadata['identifier']['identifier']
 
@@ -271,10 +281,15 @@ for t in metadata['titles']:
     if 'titleType' in t:
         t.pop('titleType')
 
+#Dummy doi for testing
+if production == False:
+    doi='10.5072/FK2NV9HP6P'
+
 update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(tgz_id))
 
 #Move temp files
-os.rename('/data/tccon/sites.csv','/data/tccon/old/sites.csv')
-os.rename('/data/tccon/temp/sites.csv','/data/tccon/sites.csv')
-for mfile in glob.glob("metadata/*"):
-    os.rename(mfile,"/data/tccon/"+mfile)
+if production == True:
+    os.rename('/data/tccon/sites.csv','/data/tccon/old/sites.csv')
+    os.rename('/data/tccon/temp/sites.csv','/data/tccon/sites.csv')
+    for mfile in glob.glob("metadata/*"):
+        os.rename(mfile,"/data/tccon/"+mfile)

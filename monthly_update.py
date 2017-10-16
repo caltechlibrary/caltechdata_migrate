@@ -38,6 +38,9 @@ T_FULL = {
 			'we':'jena01',
 		 }
 
+#Flag for sending to production or test
+production = False
+
 path = '/data/tccon/temp'
 
 os.chdir(path)
@@ -90,7 +93,7 @@ for sitef in site_files:
             c['contributorName'] = contact
 
     #print(metadata['identifier'])
-    Caltechdata_edit(token,ids[sname],copy.deepcopy(metadata),files,['nc'])
+    Caltechdata_edit(token,ids[sname],copy.deepcopy(metadata),files,['nc'],production)
     outfile = open('metadata/tccon.ggg2014.'+sname+'.'+version[sname]+".json",'w')
     outfile.write(json.dumps(metadata))
 
@@ -105,8 +108,9 @@ for sitef in site_files:
     outsites.write(title+' ['+sname+'],https://doi.org/'+doi+','+first+','+second+'\n')
  
     #print( metadata['identifier']['identifier'].encode("utf-8"))
-    #Dummy doi for testing
-    #doi='10.5072/FK2NV9HP6P'
+    if production == False:
+        #Dummy doi for testing
+        doi='10.5072/FK2NV9HP6P'
 
     #Strip contributor emails
     for c in metadata['contributors']:
@@ -136,7 +140,7 @@ for d in metadata['dates']:
     if d['dateType'] == 'Updated':
         d['date'] = datetime.date.today().isoformat()
 files = ['/data/tccon/temp/tccon.latest.public.tgz']
-Caltechdata_edit(token,tgz_id,copy.deepcopy(metadata),files)
+Caltechdata_edit(token,tgz_id,copy.deepcopy(metadata),files,[],production)
 
 doi = metadata['identifier']['identifier']
 
@@ -153,12 +157,17 @@ for t in metadata['titles']:
     if 'titleType' in t:
         t.pop('titleType')
 
+if production == False:
+    #Dummy doi for testing
+    doi='10.5072/FK2NV9HP6P'
+
 update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(tgz_id))
 
-#Move temp files
-os.rename('/data/tccon/sites.csv','/data/tccon/old/sites.csv')
-os.rename('/data/tccon/temp/sites.csv','/data/tccon/sites.csv')
-for mfile in glob.glob("metadata/*"):
+if production == True:
+    #Move temp files
+    os.rename('/data/tccon/sites.csv','/data/tccon/old/sites.csv')
+    os.rename('/data/tccon/temp/sites.csv','/data/tccon/sites.csv')
+    for mfile in glob.glob("metadata/*"):
         os.rename(mfile,"/data/tccon/"+mfile)
-#os.rename('/data/tccon/temp','/data/tccon/old/'+datetime.date.today().isoformat())
-#os.mkdir('/data/tccon/temp')   
+    #os.rename('/data/tccon/temp','/data/tccon/old/'+datetime.date.today().isoformat())
+    #os.mkdir('/data/tccon/temp')   
