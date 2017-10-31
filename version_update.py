@@ -147,6 +147,8 @@ for skey in args.sid:
     metadata['relatedIdentifiers'].append(meta)
     metadata['identifier']['identifier'] = new_identifier
     metadata['version'] = new_version
+    for t in metadata['titles']:
+        t['title'] = t['title'].split('.')[0]+'.'+ new_version
 
     #Generate new readme
     email =\
