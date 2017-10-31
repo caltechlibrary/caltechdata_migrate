@@ -53,8 +53,6 @@ parser.add_argument('sid', metavar='ID', type=str,nargs='+',\
                     help='The TCCON two letter Site ID (e.g. pa for park falls)')
 args = parser.parse_args()
 
-api_url = api_url = "https://data.caltech.edu/api/record/"
-
 #Read in site id file with CaltechDATA IDs
 infile = open("/data/tccon/site_ids.csv")
 site_ids = csv.reader(infile)
