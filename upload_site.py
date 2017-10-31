@@ -48,83 +48,16 @@ production = False
 os.chdir(path)
 token = os.environ['TINDTOK']
 parser = argparse.ArgumentParser(description=\
-        "update_site releases a new version of data for a TCCON site")
+        "Creates a new TCCON site")
 parser.add_argument('sid', metavar='ID', type=str,nargs='+',\
                     help='The TCCON two letter Site ID (e.g. pa for park falls)')
 args = parser.parse_args()
-
-#Read in site id file with CaltechDATA IDs
-infile = open("/data/tccon/site_ids.csv")
-site_ids = csv.reader(infile)
-ids = {}
-version = {}
-for row in site_ids:
-    ids[row[0]]=row[1]
-    version[row[0]]=row[2]
-infile.close()
-
-outsites = []
 
 #For each new site release
 for skey in args.sid:
     #Gather information about release
     sname = T_FULL[skey]
-    
-    new_revnum = int(version[sname].split('R')[1])+1
-    new_version = 'R'+str(new_revnum)
-    new_identifier = '10.14291/tccon.ggg2014.'+sname+'.'+new_version
-
-    #First update old record
-    mfname =\
-    '/data/tccon/metadata/tccon.ggg2014.'+sname+'.'+version[sname]+".json"
-    metaf = open(mfname,'r')
-    metadata = json.load(metaf)
-    meta = {"relatedIdentifier": new_identifier,
-            "relationType": "IsPreviousVersionOf",
-            "relatedIdentifierType":"DOI"}
-    metadata['relatedIdentifiers'].append(meta)
-
-    r = requests.get('https://data.caltech.edu/api/record/'+ids[sname])
-    exmet = r.json()['metadata']
-    for f in exmet['electronic_location_and_access']:
-        if f['electronic_name'][0] == 'README.txt':
-            r = requests.get(f['uniform_resource_identifier'])
-            readme = r.text
-    outfile = open('README.txt','w')
-    outfile.write('This file is obsolete.  An updated version is available at ')
-    outfile.write('https://doi.org/'+new_identifier+'\n\n')
-    outfile.write(readme)
-    outfile.close()
-
-    #Write updated metadata
-    mfname =\
-    'metadata/tccon.ggg2014.'+sname+'.'+version[sname]+".json"
-    outfile = open(mfname,'w')
-    outfile.write(json.dumps(metadata))
-    outfile.close()
-
-    Caltechdata_edit(token,ids[sname],copy.deepcopy(metadata),['README.txt'],[],production)
-
-    #Strip contributor emails
-    for c in metadata['contributors']:
-            if 'contributorEmail' in c:
-                c.pop('contributorEmail')
-    if 'publicationDate' in metadata:
-        metadata.pop('publicationDate')
-
-    #Stripping because of bad schema validator
-    for t in metadata['titles']:
-        if 'titleType' in t:
-            t.pop('titleType')
-
-    doi = metadata['identifier']['identifier']
-
-    #Dummy doi for testing
-    if production == False:
-        doi='10.5072/FK2NV9HP6P'
-
-    #print(doi,ids[site])
-    update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(ids[sname]))
+    new_version = 'R0'
 
     #Get new file
     sitef = glob.glob(skey+'*.nc')
@@ -136,17 +69,9 @@ for skey in args.sid:
 
     #Re-read metadata
     mfname =\
-    '/data/tccon/metadata/tccon.ggg2014.'+sname+'.'+version[sname]+".json"
+    '/data/tccon/metadata/tccon.ggg2014.'+sname+'.'+new_version+".json"
     metaf = open(mfname,'r')
     metadata = json.load(metaf)
-    meta = {"relatedIdentifier": doi,
-            "relationType":"IsNewVersionOf",
-            "relatedIdentifierType":"DOI"}
-    metadata['relatedIdentifiers'].append(meta)
-    metadata['identifier']['identifier'] = new_identifier
-    metadata['version'] = new_version
-    for t in metadata['titles']:
-        t['title'] = t['title'].split('.')[0]+'.'+ new_version
 
     #Generate new readme
     email =\
@@ -171,6 +96,7 @@ for skey in args.sid:
     cred = sitef[2:6]+'-'+sitef[6:8]+'-'+sitef[8:10]+\
                     '/'+sitef[11:15]+'-'+sitef[15:17]+'-'+sitef[17:19]
     metadata['publicationDate'] = datetime.date.today().isoformat()
+    metadata['publisher'] = "CaltechDATA"
     for d in metadata['dates']:
         if d['dateType'] == 'Collected':
             d['date'] = cred
@@ -183,8 +109,34 @@ for skey in args.sid:
         if c['contributorType'] == 'ContactPerson':
             c['contributorEmail'] = email
             c['contributorName'] = contact
+        if c['contributorType'] == 'HostingInstitution':
+            c['contributorName'] =='California Institute of Techonolgy, Pasadena, CA (US)'
+    
+    related = metadata['relatedIdentifiers']
+    new = []
+    for r in related:
+        if r['relatedIdentifier']!="http://tccon.ornl.gov/":
+            new.append(r)
+    meta = {"relatedIdentifier":
+        "https://tccon-wiki.caltech.edu/Network_Policy/Data_Use_Policy/Data_Description",
+                "relationType": "IsDocumentedBy",
+                "relatedIdentifierType":"URL"}
+    new.append(meta)
+    meta = {"relatedIdentifier": "https://tccon-wiki.caltech.edu/Sites",
+                "relationType": "IsDocumentedBy",
+                "relatedIdentifierType":"URL"}
+    new.append(meta)
+    meta = {"relatedIdentifier": "http://tccondata.org",
+            "relationType": "IsPartOf",
+            "relatedIdentifierType":"URL"}
+    new.append(meta)
+    meta = {"relatedIdentifier": "10.14291/TCCON.GGG2014",
+            "relationType": "IsPartOf",
+            "relatedIdentifierType":"DOI"}
+    new.append(meta)
+    metadata["relatedIdentifiers"] = new
 
-    #print(metadata['identifier'])
+    print(metadata['identifier'])
     response = Caltechdata_write(copy.deepcopy(metadata),token,files,production)
     print(response)
     new_id = response.split('/')[4].split('.')[0]
@@ -221,17 +173,14 @@ for skey in args.sid:
         if 'titleType' in t:
             t.pop('titleType')
 
-    create_doi(doi,metadata,'https://data.caltech.edu/records/'+new_id)
+    update_doi(doi,metadata,'https://data.caltech.edu/records/'+new_id)
 
     # Update sites file
     infile = open("/data/tccon/site_ids.csv")
     site_ids = csv.reader(infile)
-    outstr = ''
+    outstr = sname+','+new_id+','+new_version+'\n'
     for row in site_ids:
-        if row[0] == sname :
-            outstr = outstr+sname+','+new_id+','+new_version+'\n'
-        else:
-            outstr = outstr+','.join(row)+'\n'
+        outstr = outstr+','.join(row)+'\n'
     infile.close()
 
     if production == True:
@@ -244,9 +193,12 @@ for skey in args.sid:
 existing = open('/data/tccon/sites.csv','r')
 sites = csv.reader(existing)
 outstr = ''
+included = False
 for row in sites:
-    if row[0] == title+' ['+sname+']':
+    if row[0][0] > outsites[0] and included == False:
         outstr = outstr + outsites
+        outstr = outstr + ','.join(row)+'\n'
+        included = True
     else:
         outstr = outstr + ','.join(row)+'\n'
 outsites = open('/data/tccon/temp/sites.csv','w')

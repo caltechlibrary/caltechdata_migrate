@@ -31,7 +31,7 @@ T_FULL = {
 			'rj':'rikubetsu01',
 			'pr':'paris01',
 			'ma':'manaus01',
-			'sp':'nyaleesund01',
+			'sp':'nyalesund01',
 			'et':'easttroutlake01',
 			'an':'anmeyondo01',
 			'bu':'burgos01',
