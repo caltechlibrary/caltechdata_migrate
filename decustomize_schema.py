@@ -114,7 +114,8 @@ def decustomize_schema(json_record):
     #description
     if "descriptions" in json_record:
         for d in json_record["descriptions"]:
-            d["description"] = d.pop("descriptionValue")
+            if 'descriptionValue' in d:
+                d["description"] = d.pop("descriptionValue")
 
     others = ['files', 'owners', 'pid_value', 'control_number', '_oai',
             '_form_uuid', 'electronic_location_and_access', 'access_right']
