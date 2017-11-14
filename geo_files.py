@@ -198,6 +198,8 @@ for new in records:
                                 'nameIdentifierScheme':'GRID'}],\
                         "contributorType": "HostingInstitution"})
                     contributors.append({'contributorName':'Diaz, Tony',\
+                            "nameIdentifiers":[{'nameIdentifier':"0000-0002-4338-4775",\
+                                'nameIdentifierScheme':'ORCID'}],\
                             "contributorType":"DataCurator"})
                     metadata['contributors'] = contributors
 

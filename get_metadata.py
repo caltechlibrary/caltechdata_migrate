@@ -20,6 +20,14 @@ if __name__ == "__main__":
         r = requests.get(api_url+str(idv))
         metadata = r.json()['metadata']
         metadata = decustomize_schema(metadata)
+
+        #assert schema40.validate(metadata)
+        #Debugging if this fails
+        v = schema40.validator.validate(metadata)
+        errors = sorted(v.iter_errors(instance), key=lambda e:e.path)
+        for error in errors:
+                print(error.message)
+
         outfile = open(str(idv)+'.json','w')
         outfile.write(json.dumps(metadata))
         outfile.close()
