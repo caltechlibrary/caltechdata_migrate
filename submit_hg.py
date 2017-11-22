@@ -1,9 +1,9 @@
 import os,json,datetime,argparse
 import requests,hglib
-from caltechdata_write import Caltechdata_edit
-from caltechdata_write import Caltechdata_write
+from caltechdata_api import caltechdata_edit
+from caltechdata_api import caltechdata_write
 
-# This sctips assumes that your hg repsitory uses tags like '2014.2'
+# This script assumes that your hg repository uses tags like '2014.2'
 # where the major release identifier is separated from the minor release 
 # identifier by a period
 
@@ -11,6 +11,7 @@ from caltechdata_write import Caltechdata_write
 # http://libanswers.caltech.edu/faq/211307
 
 # Requires requests and python-hglib libraries
+# Requires caltechdata_api (https://github.com/caltechlibrary/caltechdata_api)
 
 def build_relation(client,version):
     #Get url to specific tag from hg repo
@@ -79,7 +80,7 @@ if __name__ == "__main__":
                     else:
                         metadata['relatedIdentifiers']=[build_relation(client,version)]
                     files = (outfile)
-                    response = Caltechdata_write(metadata,token,files,True)
+                    response = caltechdata_write(metadata,token,files,True)
                     print(response)
                     new_id = response.split('/')[4].split('.')[0]
                     outf = open(history_file,'a')
@@ -96,7 +97,7 @@ if __name__ == "__main__":
                     metadata['version'] = version
                     metadata['relatedIdentifiers'].append(build_relation(client,version))
                     files = [outfile]
-                    response=Caltechdata_edit(token,archived_ids[mj],metadata,files,['tgz'], True)
+                    response=caltechdata_edit(token,archived_ids[mj],metadata,files,['tgz'], True)
                     print(response)
                     #Not strictly necessary, but will prevent multiple edits
                     new_id = response.split('/')[4].split('.')[0]
