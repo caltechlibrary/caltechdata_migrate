@@ -1,4 +1,5 @@
-from caltechdata_write import Caltechdata_edit 
+from caltechdata_api import caltechdata_edit
+from caltechdata_api import get_metadata
 from update_doi import update_doi
 from requests import session
 import os,glob,json,csv,subprocess,datetime,copy
@@ -39,13 +40,11 @@ T_FULL = {
 		 }
 
 #Flag for sending to production or test
-production = False
+production = True
 
 path = '/data/tccon/temp'
 
 os.chdir(path)
-if os.path.exists('metadata') == False:
-    os.mkdir('metadata')
 site_files = glob.glob('*.nc')
 token = os.environ['TINDTOK']
 
@@ -74,11 +73,8 @@ for sitef in site_files:
     subprocess.run(['create_readme_contents_tccon-data',sitef],check=True,stdout=outf)
     files = {'README.txt',sitef}
     
-    #Now read in metadata file
-    mfname =\
-    '/data/tccon/metadata/tccon.ggg2014.'+sname+'.'+version[sname]+".json"
-    metaf = open(mfname,'r')
-    metadata = json.load(metaf)
+    metadata = get_metadata(ids[sname],production)
+    #Update metadata
     cred = sitef[2:6]+'-'+sitef[6:8]+'-'+sitef[8:10]+\
                     '/'+sitef[11:15]+'-'+sitef[15:17]+'-'+sitef[17:19]
     for d in metadata['dates']:
@@ -87,15 +83,21 @@ for sitef in site_files:
         if d['dateType'] == 'Updated':
             d['date'] = datetime.date.today().isoformat()
     contributors = metadata['contributors']
+    trigger = False
     for c in contributors:
         if c['contributorType'] == 'ContactPerson':
+            trigger=True
             c['contributorEmail'] = email
-            c['contributorName'] = contact
+            c['contributorName'] = contac
+    if trigger == False:
+        metadata['contributors'].append({'contributorEmail':email,
+            'contributorName',contac})
 
     #print(metadata['identifier'])
-    Caltechdata_edit(token,ids[sname],copy.deepcopy(metadata),files,['nc'],production)
-    outfile = open('metadata/tccon.ggg2014.'+sname+'.'+version[sname]+".json",'w')
-    outfile.write(json.dumps(metadata))
+    response = caltechdata_edit(token,ids[sname],copy.deepcopy(metadata),files,['nc'],production)
+    print(response)
+    #outfile = open('metadata/tccon.ggg2014.'+sname+'.'+version[sname]+".json",'w')
+    #outfile.write(json.dumps(metadata))
 
     doi = metadata['identifier']['identifier']
     for t in metadata['titles']:
@@ -133,6 +135,7 @@ outsites.close()
 #First set the CaltechDATA Identifier for the .tgz record
 tgz_id = 293
 #Need to update date and file
+#Still using metadata file to preserve email addresses
 mfname ='/data/tccon/metadata/tccon.ggg2014.json'
 metaf = open(mfname,'r')
 metadata = json.load(metaf)
@@ -140,7 +143,7 @@ for d in metadata['dates']:
     if d['dateType'] == 'Updated':
         d['date'] = datetime.date.today().isoformat()
 files = ['/data/tccon/temp/tccon.latest.public.tgz']
-Caltechdata_edit(token,tgz_id,copy.deepcopy(metadata),files,[],production)
+caltechdata_edit(token,tgz_id,copy.deepcopy(metadata),files,['tgz'],production)
 
 doi = metadata['identifier']['identifier']
 
@@ -167,7 +170,5 @@ if production == True:
     #Move temp files
     os.rename('/data/tccon/sites.csv','/data/tccon/old/sites.csv')
     os.rename('/data/tccon/temp/sites.csv','/data/tccon/sites.csv')
-    for mfile in glob.glob("metadata/*"):
-        os.rename(mfile,"/data/tccon/"+mfile)
-    #os.rename('/data/tccon/temp','/data/tccon/old/'+datetime.date.today().isoformat())
-    #os.mkdir('/data/tccon/temp')   
+    #for mfile in glob.glob("metadata/*"):
+    #    os.rename(mfile,"/data/tccon/"+mfile)
