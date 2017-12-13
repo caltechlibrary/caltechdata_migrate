@@ -104,8 +104,9 @@ for new in records:
                         description.append({'description':new_metadata[label],"descriptionType":"Other"})
                     metadata['descriptions']=description
                     title = new_metadata[label]+': Plate '+plate_num+' from "'+thesis_metadata['title']+'" (Thesis)'
+                    short_title = new_metadata[label]+': Plate '+plate_num
                     metadata['titles']=[{"title":title}]
-                    output_metadata['description_'+plate_num]="Supplemental material (image) in CaltechDATA: "+title
+                    output_metadata['description_'+plate_num]="Supplemental material (image) in CaltechDATA: "+short_title
                     output_text = output_text + title +'\n'
 
                     creators = []
