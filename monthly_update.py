@@ -88,10 +88,10 @@ for sitef in site_files:
         if c['contributorType'] == 'ContactPerson':
             trigger=True
             c['contributorEmail'] = email
-            c['contributorName'] = contac
+            c['contributorName'] = contact
     if trigger == False:
         metadata['contributors'].append({'contributorEmail':email,
-            'contributorName',contac})
+            'contributorName',contact})
 
     #print(metadata['identifier'])
     response = caltechdata_edit(token,ids[sname],copy.deepcopy(metadata),files,['nc'],production)

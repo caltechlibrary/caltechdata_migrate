@@ -1,5 +1,6 @@
-from caltechdata_write import Caltechdata_edit 
-from caltechdata_write import Caltechdata_write
+from caltechdata_api import caltechdata_edit 
+from caltechdata_api import caltechdata_write
+from caltechdata_api import get_metadata
 from update_doi import update_doi
 from create_doi import create_doi
 import requests
@@ -43,7 +44,7 @@ T_FULL = {
 path = '/data/tccon/temp'
 
 #Switch for test or production
-production = False
+production = True
 
 os.chdir(path)
 token = os.environ['TINDTOK']
@@ -75,10 +76,23 @@ for skey in args.sid:
     new_identifier = '10.14291/tccon.ggg2014.'+sname+'.'+new_version
 
     #First update old record
-    mfname =\
-    '/data/tccon/metadata/tccon.ggg2014.'+sname+'.'+version[sname]+".json"
-    metaf = open(mfname,'r')
-    metadata = json.load(metaf)
+    metadata = get_metadata(ids[sname])
+    orig_metadata = copy.deepcopy(metadata)
+
+    email =\
+        subprocess.check_output(['get_site_email',skey]).decode("utf-8").rstrip()
+    contact =\
+        subprocess.check_output(['get_site_contact',skey]).decode("utf-8").rstrip()
+    contributors = metadata['contributors']
+    trigger = False
+    for c in contributors:
+        if c['contributorType'] == 'ContactPerson':
+            trigger=True
+            c['contributorEmail'] = email
+            c['contributorName'] = contact
+    if trigger == False:
+        metadata['contributors'].append({'contributorEmail':email,'contributorName':contact})
+
     meta = {"relatedIdentifier": new_identifier,
             "relationType": "IsPreviousVersionOf",
             "relatedIdentifierType":"DOI"}
@@ -96,14 +110,8 @@ for skey in args.sid:
     outfile.write(readme)
     outfile.close()
 
-    #Write updated metadata
-    mfname =\
-    'metadata/tccon.ggg2014.'+sname+'.'+version[sname]+".json"
-    outfile = open(mfname,'w')
-    outfile.write(json.dumps(metadata))
-    outfile.close()
-
-    Caltechdata_edit(token,ids[sname],copy.deepcopy(metadata),['README.txt'],[],production)
+    response = caltechdata_edit(token,ids[sname],copy.deepcopy(metadata),['README.txt'],[],production)
+    print(response)
 
     #Strip contributor emails
     for c in metadata['contributors']:
@@ -135,17 +143,13 @@ for skey in args.sid:
         sitef = sitef[0]
 
     #Re-read metadata
-    mfname =\
-    '/data/tccon/metadata/tccon.ggg2014.'+sname+'.'+version[sname]+".json"
-    metaf = open(mfname,'r')
-    metadata = json.load(metaf)
     meta = {"relatedIdentifier": doi,
             "relationType":"IsNewVersionOf",
             "relatedIdentifierType":"DOI"}
-    metadata['relatedIdentifiers'].append(meta)
-    metadata['identifier']['identifier'] = new_identifier
-    metadata['version'] = new_version
-    for t in metadata['titles']:
+    orig_metadata['relatedIdentifiers'].append(meta)
+    orig_metadata['identifier']['identifier'] = new_identifier
+    orig_metadata['version'] = new_version
+    for t in orig_metadata['titles']:
         t['title'] = t['title'].split('.')[0]+'.'+ new_version
 
     #Generate new readme
@@ -170,27 +174,27 @@ for skey in args.sid:
     files = ['README.txt','LICENSE.txt',sitef]
     cred = sitef[2:6]+'-'+sitef[6:8]+'-'+sitef[8:10]+\
                     '/'+sitef[11:15]+'-'+sitef[15:17]+'-'+sitef[17:19]
-    metadata['publicationDate'] = datetime.date.today().isoformat()
-    for d in metadata['dates']:
+    orig_metadata['publicationDate'] = datetime.date.today().isoformat()
+    for d in orig_metadata['dates']:
         if d['dateType'] == 'Collected':
             d['date'] = cred
         if d['dateType'] == 'Updated':
             d['date'] = datetime.date.today().isoformat()
         if d['dateType'] == 'Created':
             d['date'] = datetime.date.today().isoformat()
-    contributors = metadata['contributors']
+    contributors = orig_metadata['contributors']
     for c in contributors:
         if c['contributorType'] == 'ContactPerson':
             c['contributorEmail'] = email
             c['contributorName'] = contact
 
     #print(metadata['identifier'])
-    response = Caltechdata_write(copy.deepcopy(metadata),token,files,production)
+    response = caltechdata_write(copy.deepcopy(orig_metadata),token,files,production)
     print(response)
     new_id = response.split('/')[4].split('.')[0]
     print(new_id)
 
-    doi = metadata['identifier']['identifier']
+    doi = new_identifier
 
     for t in metadata['titles']:
         if 'titleType' not in t:
@@ -212,9 +216,6 @@ for skey in args.sid:
                 c.pop('contributorEmail')
     if 'publicationDate' in metadata:
         metadata.pop('publicationDate')
-
-    outfile = open('metadata/tccon.ggg2014.'+sname+'.'+new_version+".json",'w')
-    outfile.write(json.dumps(metadata))
 
     #Stripping because of bad schema validator
     for t in metadata['titles']:
@@ -264,7 +265,8 @@ for d in metadata['dates']:
     if d['dateType'] == 'Updated':
         d['date'] = datetime.date.today().isoformat()
 files = ['tccon.latest.public.tgz']
-Caltechdata_edit(token,tgz_id,copy.deepcopy(metadata),files,[],production)
+response = caltechdata_edit(token,tgz_id,copy.deepcopy(metadata),files,[],production)
+print(response)
 
 doi = metadata['identifier']['identifier']
 
@@ -291,5 +293,3 @@ update_doi(doi,metadata,'https://data.caltech.edu/records/'+str(tgz_id))
 if production == True:
     os.rename('/data/tccon/sites.csv','/data/tccon/old/sites.csv')
     os.rename('/data/tccon/temp/sites.csv','/data/tccon/sites.csv')
-    for mfile in glob.glob("metadata/*"):
-        os.rename(mfile,"/data/tccon/"+mfile)
