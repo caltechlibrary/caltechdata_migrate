@@ -2,6 +2,7 @@ import os,subprocess,json,csv,datetime
 import requests
 from clint.textui import progress
 from caltechdata_api import caltechdata_write
+from caltechdata_api import caltechdata_edit
 
 # Requires Dataset
 # Set up the google sheets "client_secret"  following these
@@ -12,7 +13,7 @@ os.system("dataset init GeoThesis")
 os.system("dataset init CompletedTheses")
 
 os.environ['DATASET']="GeoThesis"
-os.system("dataset import-gsheet '1Wf4npmEWucCPJ-Ly1Vr6fzZvo1Y_kz7iTahmV9UmVHE' 'Sheet1' 'A:AW'")
+os.system("dataset import-gsheet '1Wf4npmEWucCPJ-Ly1Vr6fzZvo1Y_kz7iTahmV9UmVHE' 'Sheet1' 'A:BI'")
 os.environ['AWS_SDK_LOAD_CONFIG']="1"
 os.environ['GOOGLE_CLIENT_SECRET_JSON']="/etc/client_secret.json"
 token = os.environ['TINDTOK']
@@ -38,6 +39,9 @@ else:
     reader=csv.reader(open("record_list.csv"))
     for row in reader:
         record_list[row[1]] = row[0]
+
+#If we want to replace a record, put number here
+records_to_edit = []
 
 #Now look at new metadata
 records = subprocess.check_output(["dataset","keys"],universal_newlines=True).splitlines()
@@ -103,10 +107,9 @@ for new in records:
                     else:
                         description.append({'description':new_metadata[label],"descriptionType":"Other"})
                     metadata['descriptions']=description
-                    title = new_metadata[label]+': Plate '+plate_num+' from "'+thesis_metadata['title']+'" (Thesis)'
-                    short_title = new_metadata[label]+': Plate '+plate_num
+                    title = new_metadata[label]+': Supplement '+plate_num+' from "'+thesis_metadata['title']+'" (Thesis)'
                     metadata['titles']=[{"title":title}]
-                    output_metadata['description_'+plate_num]="Supplemental material (image) in CaltechDATA: "+short_title
+                    output_metadata['description_'+plate_num]="Supplement "+plate_num+" in CaltechDATA: "+new_metadata[label]
                     output_text = output_text + title +'\n'
 
                     creators = []
@@ -222,7 +225,7 @@ for new in records:
                             geolocations.append({'geoLocationPlace':input_geo})
                             print("WRITING GEO PLACE FOR>"+input_geo+"<HERE")
                             output_text = output_text + \
-                                    'Geographic Location Place: '+input_geo 
+                                    'Geographic Location Place: '+input_geo+' ' 
                     
                     if geolocations != []:
                         print(geolocations)
@@ -240,8 +243,14 @@ for new in records:
                             "contributorType":"DataCurator"})
                     metadata['contributors'] = contributors
 
-                    response = caltechdata_write(metadata,token,fname,True)
-                    print(response)
+                    if records_to_edit != []:
+                        idv = records_to_edit.pop()
+                        print(fname)
+                        response = caltechdata_edit(token,idv,metadata,fname,{'pdf'},True)
+                        print(response)
+                    else:
+                        response = caltechdata_write(metadata,token,fname,True)
+                        print(response)
 
                     num = response.split('records/')[1].split('.')[0]
                     identifier = 'https://doi.org/10.22002/D1.'+num
@@ -250,6 +259,7 @@ for new in records:
                     plate = plate + 1
 
         output_metadata['additional'] = output_text
+        output_metadata['key'] = new_metadata['Last name']+str(new_metadata['Year'])
 
         subprocess.run(['dataset','-i','-','-c','CompletedTheses','create',\
                     new_metadata['Last name']+str(new_metadata['Year'])],\
@@ -258,14 +268,15 @@ for new in records:
         #Google sheet ID for output
         output_sheet = "12Kag1F70SrkX-qDqOR9ldWx5JTIx7Nfkcn9Iy5M9Me8"
         sheet_name = "Sheet1"
-        #Must adjust range if you don't want to overwrite
-        sheet_range = "B1:Z"
-        export_list = ".resolver,.subjects,.additional"
-        title_list = "Resolver URL,Subjects,Additional Information"
-        for j in range(1,12):
+        sheet_range = "A1:BI"
+        subprocess.run(['dataset','-c','CompletedTheses','import-gsheet',\
+                    output_sheet,sheet_name,sheet_range,'2'])
+        export_list = ".done,.key,.resolver,.subjects,.additional"
+        title_list = "done,key,resolver,subjects,additional"
+        for j in range(1,14):
             k = str(j)
             export_list = export_list+',.identifier_'+k+',.description_'+k
-            title_list = title_list+',URL '+k+',Description '+k
+            title_list = title_list+',identifier_'+k+',description_'+k
 
         subprocess.run(['dataset','-c','CompletedTheses','export-gsheet',\
             output_sheet,sheet_name,sheet_range,'true',export_list,title_list])
