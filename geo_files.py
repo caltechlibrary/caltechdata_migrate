@@ -249,6 +249,7 @@ for new in records:
                         response = caltechdata_edit(token,idv,metadata,fname,{'pdf'},True)
                         print(response)
                     else:
+                        print(fname)
                         response = caltechdata_write(metadata,token,fname,True)
                         print(response)
 
