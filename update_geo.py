@@ -19,22 +19,35 @@ records = subprocess.check_output(["dataset","keys"],universal_newlines=True).sp
 for r in records:
     existing_labels = subprocess.check_output(["dataset","read",r],universal_newlines=True)
     existing_labels = json.loads(existing_labels)
-    new_additional = existing_labels['additional'].replace(": Plate",": Supplement")
+    existing_labels['additional'] = existing_labels['additional'].replace(": Plate",": Supplement")
     for i in range(1,14):
         label = 'description_'+str(i)
         if label in existing_labels:
             l = existing_labels[label]
             split = l.split(':')
             front = split[0].replace("Supplement","Supplement "+str(i))
-            new_description = front+':'+split[1]
+            existing_labels[label] = front+':'+split[1]
         identifier = 'identifier_'+str(i)
         if identifier in existing_labels:
             headers = {'Accept': 'application/vnd.datacite.datacite+json'}
             print(existing_labels[identifier])
-            r = requests.get(existing_labels[identifier],headers=headers)
+            req = requests.get(existing_labels[identifier],headers=headers)
             #print(r)
-            metadata = r.json()
+            metadata = req.json()
             new = {'title':metadata['title'].replace(": Plate",": Supplement")}
             idv = existing_labels[identifier].split('D1.')[1]
-            response = caltechdata_edit(token,idv,new,{},{},False)
+            response = caltechdata_edit(token,idv,new,{},{},True)
             print(response)
+    print(r)
+    subprocess.run(['dataset','-i','-','update',r],\
+        input=json.dumps(existing_labels),universal_newlines=True)
+
+export_list = ".done,.key,.resolver,.subjects,.additional"
+title_list = "done,key,resolver,subjects,additional"
+for j in range(1,14):
+    k = str(j)
+    export_list = export_list+',.identifier_'+k+',.description_'+k
+    title_list = title_list+',identifier_'+k+',description_'+k
+
+subprocess.run(['dataset','-c','CompletedTheses','export-gsheet',\
+    output_sheet,sheet_name,sheet_range,'true',export_list,title_list])
