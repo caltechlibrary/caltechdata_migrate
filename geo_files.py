@@ -90,8 +90,8 @@ for new in records:
                     metadata['publicationYear']=new_metadata['Year']
                     metadata['publisher']='CaltechDATA'
                     metadata['language']='en'
-                    metadata['rightsList'] = [{'rights':"public-domain"},
-                        {'rightsURI':'http://creativecommons.org/publicdomain/mark/1.0/'}]
+                    metadata['rightsList'] = [{'rights':"public-domain",
+                        'rightsURI':'http://creativecommons.org/publicdomain/mark/1.0/'}]
 
                     if 'funders' in thesis_metadata:
                         funm = []
