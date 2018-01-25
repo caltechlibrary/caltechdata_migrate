@@ -223,8 +223,20 @@ for new in records:
                                         +str(split[0])+' Degrees Latitude; '\
                                         +str(split[1])+' Degrees Longitude \n'
                                 else:
-                                    print("TOM has not written this case",points)
-                                    exit()
+                                    #We're handling the rest as groups of
+                                    #points instead of polygons
+                                    for p in points:
+                                        geoa = []
+                                        cleaned = p.replace("[","")
+                                        cleaned = cleaned.replace("]","")
+                                        split = cleaned.split(',')
+                                        geolocations.append({"geoLocationPoint":{\
+                                        "pointLatitude":float(split[0]),"pointLongitude":float(split[1])}})
+                                        output_text = output_text + \
+                                        'Geographic Location Point: '\
+                                        +str(split[0])+' Degrees Latitude; '\
+                                        +str(split[1])+' Degrees Longitude \n'
+
                             elif input_geo not in {' ',''}:
                                 geolocations.append({'geoLocationPlace':input_geo})
                                 print("WRITING GEO PLACE FOR>"+input_geo+"<HERE")
@@ -287,6 +299,6 @@ for new in records:
             output_sheet,sheet_name,sheet_range,'true',export_list,title_list])
 
         count = count + 1
-        if count == 1:
+        if count == 10:
             exit()
 
