@@ -55,7 +55,7 @@ for new in records:
     completed = subprocess.check_output(['dataset','-c','CompletedTheses','haskey'\
             ,check_key],universal_newlines=True)
     completed = completed.strip()
-    if True: #completed == 'false' and new_metadata['Availability (Public or Restricted)'] == 'Public' and new_metadata['Year'] < 1978:
+    if completed == 'false' and new_metadata['Availability (Public or Restricted)'] == 'Public' and new_metadata['Year'] < 1978:
         record_id = record_list[new_metadata["Resolver URL"]]
         print(record_id)
         thesis_metadata =\
@@ -73,11 +73,12 @@ for new in records:
             file_list.sort(key=lambda k: k['placement'])
         else:
             file_list.sort(key=lambda k: k['pos'])
-
+    
+        position = 0
         for file_info in file_list:
-            if file_info['pos'] > 1: #Ignore thesis file at position 1
-                    if file_info['mime_type']=='application/pdf':
-
+            if file_info['mime_type']=='application/pdf':
+                position = position + 1
+                if position > 1: #Ignore thesis file at position 1
                         #Download file from THESIS
                         r = requests.get(file_info["files"][0]['url'],stream=True)
                         fname = file_info["files"][0]['filename']
@@ -266,7 +267,7 @@ for new in records:
                         metadata['contributors'] = contributors
 
                         if records_to_edit != []:
-                            idv = records_to_edit.pop()
+                            idv = records_to_edit.pop(0)
                             print(fname)
                             response = caltechdata_edit(token,idv,metadata,fname,{'pdf'},True)
                             print(response)
