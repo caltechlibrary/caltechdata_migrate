@@ -55,7 +55,7 @@ for new in records:
     completed = subprocess.check_output(['dataset','-c','CompletedTheses','haskey'\
             ,check_key],universal_newlines=True)
     completed = completed.strip()
-    if completed == 'false' and new_metadata['Availability (Public or Restricted)'] == 'Public' and new_metadata['Year'] < 1978:
+    if True: #completed == 'false' and new_metadata['Availability (Public or Restricted)'] == 'Public' and new_metadata['Year'] < 1978:
         record_id = record_list[new_metadata["Resolver URL"]]
         print(record_id)
         thesis_metadata =\
@@ -65,11 +65,17 @@ for new in records:
         output_text = 'Supplemental Files Information:\n'
         plate = 1
         #print(thesis_metadata)
-        for file_info in thesis_metadata['documents']:
 
-                position = file_info['pos']
+        #If placement is present, order by placement.
+        #Otherwise order by position
+        file_list = thesis_metadata['documents']
+        if 'placement' in file_list[0]:
+            file_list.sort(key=lambda k: k['placement'])
+        else:
+            file_list.sort(key=lambda k: k['pos'])
 
-                if position > 1: #Ignore thesis file at position 1
+        for file_info in file_list:
+            if file_info['pos'] > 1: #Ignore thesis file at position 1
                     if file_info['mime_type']=='application/pdf':
 
                         #Download file from THESIS
