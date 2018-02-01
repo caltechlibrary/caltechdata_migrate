@@ -72,7 +72,7 @@ for sitef in site_files:
         subprocess.check_output(['get_site_contact',skey]).decode("utf-8").rstrip()
     # Run scrit tp generate README
     outf = open('README.txt','w')
-        subprocess.run(['create_readme_contents_tccon-data',sitef],check=True,stdout=outf)
+    subprocess.run(['create_readme_contents_tccon-data',sitef],check=True,stdout=outf)
     files = {'README.txt',sitef}
     
     metadata = get_metadata(ids[sname],production)
@@ -92,8 +92,7 @@ for sitef in site_files:
             c['contributorEmail'] = email
             c['contributorName'] = contact
     if trigger == False:
-        metadata['contributors'].append({'contributorEmail':email,
-            'contributorName',contact})
+        metadata['contributors'].append({'contributorEmail':email,'contributorName':contact})
 
     #print(metadata['identifier'])
     response = caltechdata_edit(token,ids[sname],copy.deepcopy(metadata),files,['nc'],production)
