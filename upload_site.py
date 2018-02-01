@@ -1,49 +1,49 @@
-from caltechdata_write import Caltechdata_edit 
-from caltechdata_write import Caltechdata_write
+from caltechdata_api import caltechdata_edit 
+from caltechdata_api import caltechdata_write
 from update_doi import update_doi
 from create_doi import create_doi
 import requests
 import os,glob,json,csv,subprocess,datetime,copy,argparse
 
-T_FULL = {
-			'pa':'parkfalls01',
-			'oc':'lamont01',
-			'wg':'wollongong01',
-			'db':'darwin01',
-			'or':'orleans01',
-			'bi':'bialystok01',
-			'br':'bremen01',
-			'jc':'jpl01',
-			'jf':'jpl02',
-			'ra':'reunion01',
-			'gm':'garmisch01',
-			'lh':'lauder01',
-			'll':'lauder02',
-			'tk':'tsukuba02',
-			'ka':'karlsruhe01',
-			'ae':'ascension01',
-			'eu':'eureka01',
-			'so':'sodankyla01',
-			'iz':'izana01',
-			'if':'indianapolis01',
-                        'df':'edwards01',
-			'js':'saga01',
-			'fc':'fourcorners01',
-			'ci':'pasadena01',
-			'rj':'rikubetsu01',
-			'pr':'paris01',
-			'ma':'manaus01',
-			'sp':'nyalesund01',
-			'et':'easttroutlake01',
-			'an':'anmeyondo01',
-			'bu':'burgos01',
-			'we':'jena01',
-		 }
+#T_FULL = {
+#			'pa':'parkfalls01',
+#			'oc':'lamont01',
+#			'wg':'wollongong01',
+#			'db':'darwin01',
+#			'or':'orleans01',
+#			'bi':'bialystok01',
+#			'br':'bremen01',
+#			'jc':'jpl01',
+#			'jf':'jpl02',
+#			'ra':'reunion01',
+#			'gm':'garmisch01',
+#			'lh':'lauder01',
+#			'll':'lauder02',
+#			'tk':'tsukuba02',
+#			'ka':'karlsruhe01',
+#			'ae':'ascension01',
+#			'eu':'eureka01',
+#			'so':'sodankyla01',
+#			'iz':'izana01',
+#			'if':'indianapolis01',
+#                        'df':'edwards01',
+#			'js':'saga01',
+#			'fc':'fourcorners01',
+#			'ci':'pasadena01',
+#			'rj':'rikubetsu01',
+#			'pr':'paris01',
+#			'ma':'manaus01',
+#			'sp':'nyalesund01',
+#			'et':'easttroutlake01',
+#			'an':'anmeyondo01',
+#			'bu':'burgos01',
+#			'we':'jena01',
+#		 }
 
 path = '/data/tccon/temp'
 
 #Switch for test or production
-production = False
+production = True
 
 os.chdir(path)
 token = os.environ['TINDTOK']
@@ -56,7 +56,10 @@ args = parser.parse_args()
 #For each new site release
 for skey in args.sid:
     #Gather information about release
-    sname = T_FULL[skey]
+    #sname = T_FULL[skey]
+    sname =\
+        subprocess.check_output(['get_site_name',skey]).decode("utf-8").rstrip()
+
     new_version = 'R0'
 
     #Get new file
@@ -137,7 +140,7 @@ for skey in args.sid:
     metadata["relatedIdentifiers"] = new
 
     print(metadata['identifier'])
-    response = Caltechdata_write(copy.deepcopy(metadata),token,files,production)
+    response = caltechdata_write(copy.deepcopy(metadata),token,files,production)
     print(response)
     new_id = response.split('/')[4].split('.')[0]
     print(new_id)
@@ -165,15 +168,12 @@ for skey in args.sid:
     if 'publicationDate' in metadata:
         metadata.pop('publicationDate')
 
-    outfile = open('metadata/tccon.ggg2014.'+sname+'.'+new_version+".json",'w')
-    outfile.write(json.dumps(metadata))
-
     #Stripping because of bad schema validator
     for t in metadata['titles']:
         if 'titleType' in t:
             t.pop('titleType')
 
-    update_doi(doi,metadata,'https://data.caltech.edu/records/'+new_id)
+    create_doi(doi,metadata,'https://data.caltech.edu/records/'+new_id)
 
     # Update sites file
     infile = open("/data/tccon/site_ids.csv")
@@ -216,7 +216,7 @@ for d in metadata['dates']:
     if d['dateType'] == 'Updated':
         d['date'] = datetime.date.today().isoformat()
 files = ['tccon.latest.public.tgz']
-Caltechdata_edit(token,tgz_id,copy.deepcopy(metadata),files,[],production)
+caltechdata_edit(token,tgz_id,copy.deepcopy(metadata),files,[],production)
 
 doi = metadata['identifier']['identifier']
 
