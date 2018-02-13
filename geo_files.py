@@ -69,14 +69,18 @@ for new in records:
         #If placement is present, order by placement.
         #Otherwise order by position
         file_list = thesis_metadata['documents']
-        if 'placement' in file_list[0]:
-            file_list.sort(key=lambda k: k['placement'])
-        else:
-            file_list.sort(key=lambda k: k['pos'])
-    
-        position = 0
+        pdf_files = []
         for file_info in file_list:
             if file_info['mime_type']=='application/pdf':
+                pdf_files.append(file_info)
+
+        if 'placement' in pdf_files[0]:
+            pdf_files.sort(key=lambda k: k['placement'])
+        else:
+            pdf_files.sort(key=lambda k: k['pos'])
+    
+        position = 0
+        for file_info in pdf_files:
                 position = position + 1
                 if position > 1: #Ignore thesis file at position 1
                         #Download file from THESIS
@@ -294,7 +298,7 @@ for new in records:
         sheet_name = "Sheet1"
         sheet_range = "A1:CZ"
         subprocess.run(['dataset','-c','CompletedTheses','import-gsheet',\
-                    output_sheet,sheet_name,sheet_range,'2'])
+                            output_sheet,sheet_name,sheet_range,'2'])
         export_list = ".done,.key,.resolver,.subjects,.additional"
         title_list = "done,key,resolver,subjects,additional"
         for j in range(1,21):
@@ -303,7 +307,9 @@ for new in records:
             title_list = title_list+',identifier_'+k+',description_'+k
 
         subprocess.run(['dataset','-c','CompletedTheses','export-gsheet',\
-            output_sheet,sheet_name,sheet_range,'true',export_list,title_list])
+                    output_sheet,sheet_name,sheet_range,'true',export_list,title_list])
+
+        #print('dataset','-c','CompletedTheses','export-gsheet',output_sheet,sheet_name,sheet_range,'true',export_list,title_list)
 
         count = count + 1
         if count == 10:
