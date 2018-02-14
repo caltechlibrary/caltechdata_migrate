@@ -23,6 +23,7 @@ token = os.environ['TINDTOK']
 #Set up dictionary of thesis links
 available = os.path.isfile('record_list.csv')
 if available == False:
+    print("Generating THESIS List")
     record_list = {}
     count = 0
     keys = subprocess.check_output(["dataset","-c","s3://dataset.library.caltech.edu/CaltechTHESIS","keys"],universal_newlines=True).splitlines()
@@ -55,7 +56,8 @@ for new in records:
     completed = subprocess.check_output(['dataset','-c','CompletedTheses','haskey'\
             ,check_key],universal_newlines=True)
     completed = completed.strip()
-    if completed == 'false' and new_metadata['Availability (Public or Restricted)'] == 'Public' and new_metadata['Year'] < 1978:
+    if completed == 'false' and new_metadata['Availability (Public or Restricted)']\
+                 == 'Public' and new_metadata['Year'] < 1978:
         record_id = record_list[new_metadata["Resolver URL"]]
         print(record_id)
         thesis_metadata =\
@@ -106,12 +108,17 @@ for new in records:
                         metadata['language']='en'
                         metadata['rightsList'] = [{'rights':"public-domain",
                         'rightsURI':'http://creativecommons.org/publicdomain/mark/1.0/'}]
+                        #metadata['rightsList'] = [{'rights':"other",
+                        #    'rightsURI':'https://data.caltech.edu/caltechthesis-license'}]
 
                         if 'funders' in thesis_metadata:
                             funm = []
                             for f in thesis_metadata['funders']:
-                                funm.append({"funderName":f['agency'],
-                                "awardNumber":f['awardNumber']})
+                                if 'awardNumber' in f:
+                                    funm.append({"funderName":f['agency'],
+                                    "awardNumber":f['awardNumber']})
+                                else:
+                                    funm.append({"funderName":f['agency']})
                             metadata['fundingReferences'] = funm
 
                         description = []
@@ -191,27 +198,18 @@ for new in records:
                                     input_geo = input_geo.replace("}","")
                                 points = input_geo.split('],[')
                                 if len(points) == 4:
-                                    lat = set()
-                                    lon = set()
+                                    lat = []
+                                    lon = []
                                     for p in points:
                                         cleaned = p.replace("[","")
                                         cleaned = cleaned.replace("]","")
                                         split = cleaned.split(',')
-                                        lat.add(split[0])
-                                        lon.add(split[1])
-                                    #guess
-                                    south = float(lat.pop())
-                                    north = float(lat.pop())
-                                    if north < south:
-                                        s = north
-                                        north = south
-                                        south = s
-                                    east = float(lon.pop())
-                                    west = float(lon.pop())
-                                    if east < west:
-                                        w = east
-                                        east = west
-                                        west = w
+                                        lat.append(float(split[0]))
+                                        lon.append(float(split[1]))
+                                    south = sorted(lat).pop(0)
+                                    north = sorted(lat).pop()
+                                    east = sorted(lon).pop()
+                                    west = sorted(lon).pop(0)
                                     geolocations.append({'geoLocationBox':{\
                                     'westBoundLongitude':west,'eastBoundLongitude':east,\
                                     'southBoundLatitude':south,'northBoundLatitude':north}})
@@ -298,7 +296,7 @@ for new in records:
         sheet_name = "Sheet1"
         sheet_range = "A1:CZ"
         subprocess.run(['dataset','-c','CompletedTheses','import-gsheet',\
-                            output_sheet,sheet_name,sheet_range,'2'])
+                                    output_sheet,sheet_name,sheet_range,'2'])
         export_list = ".done,.key,.resolver,.subjects,.additional"
         title_list = "done,key,resolver,subjects,additional"
         for j in range(1,21):
