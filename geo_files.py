@@ -3,20 +3,24 @@ import requests
 from clint.textui import progress
 from caltechdata_api import caltechdata_write
 from caltechdata_api import caltechdata_edit
-
+import dataset
 # Requires Dataset
 # Set up the google sheets "client_secret"  following these
 # [instructions](https://github.com/caltechlibrary/dataset/blob/master/docs/dataset/import-gsheet.md)
 # Set up aws 
 
+os.system("rm -rf GeoThesis")
 os.system("dataset init GeoThesis")
-os.system("dataset init CompletedTheses")
 
 os.environ['GOOGLE_CLIENT_SECRET_JSON']="/etc/client_secret.json"
 os.environ['AWS_SDK_LOAD_CONFIG']="1"
 
+print("Importing")
+
 os.environ['DATASET']="GeoThesis"
-os.system("dataset import-gsheet '1Wf4npmEWucCPJ-Ly1Vr6fzZvo1Y_kz7iTahmV9UmVHE' 'Sheet1' 'A:CZ'")
+os.system("dataset import-gsheet '1Wf4npmEWucCPJ-Ly1Vr6fzZvo1Y_kz7iTahmV9UmVHE' 'Sheet1' 'A:CZ' 3")
+
+print("Imported")
 
 token = os.environ['TINDTOK']
 
@@ -26,13 +30,21 @@ if available == False:
     print("Generating THESIS List")
     record_list = {}
     count = 0
+    #collection = "s3://dataset.library.caltech.edu/CaltechTHESIS"
+    #keys = dataset.keys(collection)
+    #print(keys)
+    #print(dataset.count(collection))
+    #print("here")
+    os.environ['DATASET']="s3://dataset.library.caltech.edu/CaltechTHESIS"
     keys = subprocess.check_output(["dataset","-c","s3://dataset.library.caltech.edu/CaltechTHESIS","keys"],universal_newlines=True).splitlines()
     for k in keys:
         count = count + 1
         if count % 100 == 0:
             print(count)
+        #metadata = dataset.read_record(collection,k)
         metadata = subprocess.check_output(["dataset","-c","s3://dataset.library.caltech.edu/CaltechTHESIS","read",k],universal_newlines=True)
         metadata = json.loads(metadata)
+        #print(metadata)
         record_list[k]=metadata['official_url']
     with open('record_list.csv','w') as f:
         w = csv.writer(f)
@@ -47,19 +59,24 @@ else:
 records_to_edit = []
 
 #Now look at new metadata
+os.environ['DATASET']="GeoThesis"
 records = subprocess.check_output(["dataset","keys"],universal_newlines=True).splitlines()
 count = 0
 for new in records:
+    os.environ['DATASET']="GeoThesis"
     new_metadata = subprocess.check_output(["dataset","read",new],universal_newlines=True)
     new_metadata = json.loads(new_metadata)
     check_key = new_metadata['Last name']+str(new_metadata['Year'])
+    os.environ['DATASET']="CompletedTheses"
     completed = subprocess.check_output(['dataset','-c','CompletedTheses','haskey'\
             ,check_key],universal_newlines=True)
     completed = completed.strip()
     if completed == 'false' and new_metadata['Availability (Public or Restricted)']\
                  == 'Public' and new_metadata['Year'] < 1978:
+        print(len(record_list))
         record_id = record_list[new_metadata["Resolver URL"]]
         print(record_id)
+        os.environ['DATASET']="s3://dataset.library.caltech.edu/CaltechTHESIS"
         thesis_metadata =\
         subprocess.check_output(["dataset","-c","s3://dataset.library.caltech.edu/CaltechTHESIS","read",record_id],universal_newlines=True)
         thesis_metadata = json.loads(thesis_metadata)
@@ -76,6 +93,7 @@ for new in records:
             if file_info['mime_type']=='application/pdf':
                 pdf_files.append(file_info)
 
+        print(pdf_files)
         if 'placement' in pdf_files[0]:
             pdf_files.sort(key=lambda k: k['placement'])
         else:
@@ -287,6 +305,7 @@ for new in records:
         output_metadata['additional'] = output_text
         output_metadata['key'] = new_metadata['Last name']+str(new_metadata['Year'])
 
+        os.environ['DATASET']="CompletedTheses"
         subprocess.run(['dataset','-i','-','-c','CompletedTheses','create',\
                     new_metadata['Last name']+str(new_metadata['Year'])],\
                     input=json.dumps(output_metadata),universal_newlines=True)
@@ -295,7 +314,7 @@ for new in records:
         output_sheet = "12Kag1F70SrkX-qDqOR9ldWx5JTIx7Nfkcn9Iy5M9Me8"
         sheet_name = "Sheet1"
         sheet_range = "A1:CZ"
-        subprocess.run(['dataset','-c','CompletedTheses','import-gsheet',\
+        subprocess.run(['dataset','-c','CompletedTheses','-overwrite','import-gsheet',\
                                     output_sheet,sheet_name,sheet_range,'2'])
         export_list = ".done,.key,.resolver,.subjects,.additional"
         title_list = "done,key,resolver,subjects,additional"
