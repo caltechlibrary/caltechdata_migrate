@@ -5,41 +5,6 @@ from create_doi import create_doi
 import requests
 import os,glob,json,csv,subprocess,datetime,copy,argparse
 
-#T_FULL = {
-#			'pa':'parkfalls01',
-#			'oc':'lamont01',
-#			'wg':'wollongong01',
-#			'db':'darwin01',
-#			'or':'orleans01',
-#			'bi':'bialystok01',
-#			'br':'bremen01',
-#			'jc':'jpl01',
-#			'jf':'jpl02',
-#			'ra':'reunion01',
-#			'gm':'garmisch01',
-#			'lh':'lauder01',
-#			'll':'lauder02',
-#			'tk':'tsukuba02',
-#			'ka':'karlsruhe01',
-#			'ae':'ascension01',
-#			'eu':'eureka01',
-#			'so':'sodankyla01',
-#			'iz':'izana01',
-#			'if':'indianapolis01',
-#                        'df':'edwards01',
-#			'js':'saga01',
-#			'fc':'fourcorners01',
-#			'ci':'pasadena01',
-#			'rj':'rikubetsu01',
-#			'pr':'paris01',
-#			'ma':'manaus01',
-#			'sp':'nyalesund01',
-#			'et':'easttroutlake01',
-#			'an':'anmeyondo01',
-#			'bu':'burgos01',
-#			'we':'jena01',
-#		 }
-
 path = '/data/tccon/temp'
 
 #Switch for test or production
@@ -146,6 +111,22 @@ for skey in args.sid:
     print(new_id)
 
     doi = metadata['identifier']['identifier']
+
+    #Get file url
+    if production == False:
+        api_url = 'https://cd-sandbox.tind.io/api/record/'
+    else:
+        api_url = 'https://data.caltech.edu/api/record/'
+    response = requests.get(api_url+new_id)
+    ex_metadata = response.json()['metadata']
+    for f in ex_metadata['electronic_location_and_access']:
+        if f['electronic_name'][0]=='LICENSE.txt':
+            url = f['uniform_resource_identifier']
+
+    metadata['rightsList'] = [{'rightsURI':url,'rights':'TCCON Data License'}]
+
+    response = caltechdata_edit(metadata,token,files,production)
+    print(response)
 
     for t in metadata['titles']:
         if 'titleType' not in t:

@@ -6,41 +6,6 @@ from create_doi import create_doi
 import requests
 import os,glob,json,csv,subprocess,datetime,copy,argparse
 
-T_FULL = {
-			'pa':'parkfalls01',
-			'oc':'lamont01',
-			'wg':'wollongong01',
-			'db':'darwin01',
-			'or':'orleans01',
-			'bi':'bialystok01',
-			'br':'bremen01',
-			'jc':'jpl01',
-			'jf':'jpl02',
-			'ra':'reunion01',
-			'gm':'garmisch01',
-			'lh':'lauder01',
-			'll':'lauder02',
-			'tk':'tsukuba02',
-			'ka':'karlsruhe01',
-			'ae':'ascension01',
-			'eu':'eureka01',
-			'so':'sodankyla01',
-			'iz':'izana01',
-			'if':'indianapolis01',
-                        'df':'edwards01',
-			'js':'saga01',
-			'fc':'fourcorners01',
-			'ci':'pasadena01',
-			'rj':'rikubetsu01',
-			'pr':'paris01',
-			'ma':'manaus01',
-			'sp':'nyalesund01',
-			'et':'easttroutlake01',
-			'an':'anmeyondo01',
-			'bu':'burgos01',
-			'we':'jena01',
-		 }
-
 path = '/data/tccon/temp'
 
 #Switch for test or production
@@ -69,7 +34,8 @@ outsites = []
 #For each new site release
 for skey in args.sid:
     #Gather information about release
-    sname = T_FULL[skey]
+    sname = \
+    subprocess.check_output(['get_site_name',skey]).decode("utf-8").rstrip()
     
     new_revnum = int(version[sname].split('R')[1])+1
     new_version = 'R'+str(new_revnum)
@@ -91,7 +57,7 @@ for skey in args.sid:
             c['contributorEmail'] = email
             c['contributorName'] = contact
     if trigger == False:
-        metadata['contributors'].append({'contributorEmail':email,'contributorName':contact})
+        metadata['contributors'].append({'contributorEmail':email,'contributorName':contact,'contributorType':'ContactPerson'})
 
     meta = {"relatedIdentifier": new_identifier,
             "relationType": "IsPreviousVersionOf",
@@ -142,7 +108,7 @@ for skey in args.sid:
     else:
         sitef = sitef[0]
 
-    #Re-read metadata
+    #WWork from origional metadata
     meta = {"relatedIdentifier": doi,
             "relationType":"IsNewVersionOf",
             "relatedIdentifierType":"DOI"}
@@ -188,13 +154,28 @@ for skey in args.sid:
             c['contributorEmail'] = email
             c['contributorName'] = contact
 
-    #print(metadata['identifier'])
-    response = caltechdata_write(copy.deepcopy(orig_metadata),token,files,production)
+    response = caltechdata_write(orig_metadata,token,files,production)
     print(response)
     new_id = response.split('/')[4].split('.')[0]
     print(new_id)
 
     doi = new_identifier
+
+    #Get file url
+    if production == False:
+        api_url = 'https://cd-sandbox.tind.io/api/record/'
+    else:
+        api_url = 'https://data.caltech.edu/api/record/'
+    response = requests.get(api_url+new_id)
+    ex_metadata = response.json()['metadata']
+    for f in ex_metadata['electronic_location_and_access']:
+        if f['electronic_name'][0]=='LICENSE.txt':
+            url = f['uniform_resource_identifier']
+
+    orig_metadata['rightsList'] = [{'rightsURI':url,'rights':'TCCON Data License'}]
+
+    response = caltechdata_edit(orig_metadata,token,files,production)
+    print(response)
 
     for t in metadata['titles']:
         if 'titleType' not in t:
@@ -211,18 +192,18 @@ for skey in args.sid:
         doi='10.5072/FK2NV9HP7P'
 
     #Strip contributor emails
-    for c in metadata['contributors']:
+    for c in orig_metadata['contributors']:
             if 'contributorEmail' in c:
                 c.pop('contributorEmail')
-    if 'publicationDate' in metadata:
-        metadata.pop('publicationDate')
+    if 'publicationDate' in orig_metadata:
+        orig_metadata.pop('publicationDate')
 
     #Stripping because of bad schema validator
-    for t in metadata['titles']:
+    for t in orig_metadata['titles']:
         if 'titleType' in t:
             t.pop('titleType')
 
-    create_doi(doi,metadata,'https://data.caltech.edu/records/'+new_id)
+    create_doi(doi,orig_metadata,'https://data.caltech.edu/records/'+new_id)
 
     # Update sites file
     infile = open("/data/tccon/site_ids.csv")
