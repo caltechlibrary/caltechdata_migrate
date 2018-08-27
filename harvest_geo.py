@@ -33,9 +33,21 @@ for h in hits['hits']['hits']:
 
     assert schema40.validate(metadata)
     
-    print(metadata)
-    print(metadata['relatedIdentifiers'][0]['relatedIdentifier'])
-    
+    #print(metadata)
+    doi = metadata['identifier']['identifier']
+    resolver = metadata['relatedIdentifiers'][0]['relatedIdentifier']
+    title = metadata['titles'][0]['title']
+    item_title = title.split(':')[0]
+    item_number = title.split(':')[1][12]
+    subjects = ''
+    for s in metadata['subjects']:
+        subjects = subjects + s['subject'] + ','
+    subjects = subjects[0:-1]
+
+
+    print(doi,resolver,item_title,item_number,subjects[0:-1])
+        
+
     exit()
 
     result = dataset.has_key(collection,rid)
