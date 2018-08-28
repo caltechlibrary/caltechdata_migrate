@@ -23,17 +23,32 @@ url = 'https://data.caltech.edu/api/records'
 response = requests.get(url+'/?size=1000&q=resourceType.resourceTypeGeneral:Image')
 hits = response.json()
 
-resolver_records = []
+collection = 'harvest_geo.ds'
+if os.path.isdir(collection) == False:
+    ok = dataset.init(collection)
+    if ok == False:
+        print("Dataset failed to init collection")
+        exit()
+
+records = {}
 
 for h in hits['hits']['hits']:
     rid = str(h['id'])
     record = h['metadata']
 
     metadata = decustomize_schema(record)
-
-    assert schema40.validate(metadata)
     
-    #print(metadata)
+    print(metadata['identifier']['identifier'])
+
+    try:
+        assert schema40.validate(metadata)
+    except AssertionError:
+        v = schema40.validator.validate(metadata)
+        errors = sorted(v.iter_errors(instance), key=lambda e:e.path)
+        for error in errors:
+            print(error.message)
+        exit()
+    
     doi = metadata['identifier']['identifier']
     resolver = metadata['relatedIdentifiers'][0]['relatedIdentifier']
     title = metadata['titles'][0]['title']
@@ -44,18 +59,34 @@ for h in hits['hits']['hits']:
         subjects = subjects + s['subject'] + ','
     subjects = subjects[0:-1]
 
-
-    print(doi,resolver,item_title,item_number,subjects[0:-1])
+    record = {'doi':doi,'item_title':item_title,
+            'item_number':item_number,'subjects':subjects[0:-1]}
         
-
-    exit()
-
-    result = dataset.has_key(collection,rid)
-
+    #result = dataset.has_key(collection,resolver)
+    result = resolver in records
     if result == False:
+    
+        records[resolver] = [record]
+        #err = dataset.create(collection,resolver,record)
+        
+        #if err != '':
+        #    print(err)
+        #    exit()
 
-        dataset.create(collection,rid, record)
-
-
+    #We need to figure out if we have a problem
     else:
-        print("Duplicate record: ",rid)
+        existing = records[resolver]
+        new_number = record['item_number']
+        error = False
+        for e in existing:
+            if e['item_number'] == new_number:
+                error=True
+                print("Same item in CaltechDATA twice")
+                print(resolver,record['doi'],e['doi'])
+                exit()
+
+        if error == False:
+            existing.append(record)
+            records[resolver] = existing
+            #dataset.update(collection,resolver,existing)
+
