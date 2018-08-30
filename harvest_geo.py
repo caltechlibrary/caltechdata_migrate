@@ -3,7 +3,11 @@ import requests
 from datacite import schema40
 from clint.textui import progress
 from caltechdata_api import decustomize_schema
+from operator import attrgetter
 import dataset
+
+def get_num(record):
+    return record['item_number']
 
 new = False
 
@@ -52,9 +56,10 @@ for h in hits['hits']['hits']:
     doi = metadata['identifier']['identifier']
     resolver = metadata['relatedIdentifiers'][0]['relatedIdentifier']
     title = metadata['titles'][0]['title']
-    item_title = title.split(':')[0]
-    item_number = title.split(':')[1].split(' ')[2]
-    print(item_number)
+    item_title = title.split(': Supplement ')[0]
+    #print(title)
+    item_number = title.split(': Supplement ')[1].split(' ')[0]
+    #print(item_number)
     subjects = ''
     for s in metadata['subjects']:
         subjects = subjects + s['subject'] + ','
@@ -118,13 +123,16 @@ for resolver in records:
     record = records[resolver]
     output = {'resolver':resolver}
     output_str = 'Supplemental Files Information:\n'
+    #print(record)
+    record = sorted(record, key=get_num)
+    #print(record)
     for r in record:
-        output['identifier_'+r['item_number']] = r['doi']
+        output['identifier_'+r['item_number']] = 'https://doi.org/' + r['doi']
         start_str = 'Supplement '+r['item_number']+' in CaltechDATA: '
         output['description_'+r['item_number']] = start_str + r['item_title'] 
         output_str = output_str + r['title']+'\n'
         if r['dates'] != '':
-            output_str = output_str + 'Date(s) Collected: ' +r['dates']
+            output_str = output_str + 'Date(s) Collected: ' +r['dates']+'\n'
         if r['geo'] != '':
             output_str = output_str + geo
         output['subjects'] = r['subjects']
