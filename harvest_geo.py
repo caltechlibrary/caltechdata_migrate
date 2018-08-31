@@ -9,32 +9,30 @@ import dataset
 def get_num(record):
     return record['item_number']
 
-new = False
+collection = 'harvest_geo.ds'
 
-collection = 'geo_records.ds'
-
-if new==True:
+#Nothing in this collection gets saved
+if os.path.isdir(collection) == True:
     os.system('rm -rf '+collection)
 
-if os.path.isdir(collection) == False:
-    ok = dataset.init(collection)
-    if ok == False:
-        print("Dataset failed to init collection")
-        exit()
+ok = dataset.init(collection)
+if ok == False:
+    print("Dataset failed to init collection")
+    exit()
 
 url = 'https://data.caltech.edu/api/records'
 
 response = requests.get(url+'/?size=1000&q=resourceType.resourceTypeGeneral:Image')
 hits = response.json()
 
-collection = 'harvest_geo.ds'
-if os.path.isdir(collection) == False:
-    ok = dataset.init(collection)
-    if ok == False:
-        print("Dataset failed to init collection")
-        exit()
-
 records = {}
+
+#Update completed records
+os.system("rm -rf GeoThesis.ds")
+os.system("dataset init GeoThesis.ds")
+os.environ['GOOGLE_CLIENT_SECRET_JSON']="/etc/client_secret.json"
+orig_collection = 'GeoThesis.ds'
+os.system("dataset GeoThesis.ds import-gsheet '1Wf4npmEWucCPJ-Ly1Vr6fzZvo1Y_kz7iTahmV9UmVHE' 'Sheet1' 'A:CZ' 3")
 
 for h in hits['hits']['hits']:
     rid = str(h['id'])
@@ -88,9 +86,12 @@ for h in hits['hits']['hits']:
             if 'geoLocationPlace' in g:
                 geo = geo + 'Geographic Location Place: '+g['geoLocationPlace']
 
+    origional = dataset.read(orig_collection,resolver)[0]
+    linked = origional['Linked']
+
     record = {'doi':doi,'item_title':item_title,'title':title,
             'item_number':item_number,'subjects':subjects,
-            'dates':dates,'geo':geo}
+            'dates':dates,'geo':geo,'linked':linked}
         
     result = resolver in records
     if result == False:
@@ -136,6 +137,7 @@ for resolver in records:
         if r['geo'] != '':
             output_str = output_str + geo
         output['subjects'] = r['subjects']
+        output['linked'] = r['linked']
     output['additional'] = output_str
     dataset.create(collection,resolver,output)
 
@@ -144,7 +146,7 @@ output_sheet = '1vhw4cz2txRlY5iWRhQveOs4nk-4aW6FMZKbDOX6cgu0'
 sheet_name = "Sheet1"
 sheet_range = "A1:CZ"
 client_secret = '/etc/client_secret.json'
-export_list = ['.resolver','.subjects','.additional']
+export_list = ['.linked','.resolver','.subjects','.additional']
 for j in range(1,21):
     k = str(j)
     export_list.append('.identifier_'+k)
