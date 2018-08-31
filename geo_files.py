@@ -9,15 +9,15 @@ import dataset
 # [instructions](https://github.com/caltechlibrary/dataset/blob/master/docs/dataset/import-gsheet.md)
 # Set up aws 
 
-os.system("rm -rf GeoThesis")
-os.system("dataset init GeoThesis")
+os.system("rm -rf GeoThesis.ds")
+os.system("dataset init GeoThesis.ds")
 
 os.environ['GOOGLE_CLIENT_SECRET_JSON']="/etc/client_secret.json"
 os.environ['AWS_SDK_LOAD_CONFIG']="1"
 
 print("Importing")
 
-os.environ['DATASET']="GeoThesis"
+os.environ['DATASET']="GeoThesis.ds"
 os.system("dataset import-gsheet '1Wf4npmEWucCPJ-Ly1Vr6fzZvo1Y_kz7iTahmV9UmVHE' 'Sheet1' 'A:CZ' 3")
 
 print("Imported")
@@ -27,28 +27,8 @@ token = os.environ['TINDTOK']
 #Set up dictionary of thesis links
 available = os.path.isfile('record_list.csv')
 if available == False:
-    print("Generating THESIS List")
-    record_list = {}
-    count = 0
-    #collection = "s3://dataset.library.caltech.edu/CaltechTHESIS"
-    #keys = dataset.keys(collection)
-    #print(keys)
-    #print(dataset.count(collection))
-    #print("here")
-    os.environ['DATASET']="s3://dataset.library.caltech.edu/CaltechTHESIS"
-    keys = subprocess.check_output(["dataset","-c","s3://dataset.library.caltech.edu/CaltechTHESIS","keys"],universal_newlines=True).splitlines()
-    for k in keys:
-        count = count + 1
-        if count % 100 == 0:
-            print(count)
-        #metadata = dataset.read_record(collection,k)
-        metadata = subprocess.check_output(["dataset","-c","s3://dataset.library.caltech.edu/CaltechTHESIS","read",k],universal_newlines=True)
-        metadata = json.loads(metadata)
-        #print(metadata)
-        record_list[k]=metadata['official_url']
-    with open('record_list.csv','w') as f:
-        w = csv.writer(f)
-        w.writerows(record_list.items())
+    print("You need to run update_thesis_file.py")
+    exit()
 else:
     record_list = {}
     reader=csv.reader(open("record_list.csv"))
@@ -58,33 +38,33 @@ else:
 #If we want to replace a record, put number here
 records_to_edit = []
 
+#Connection to CaltechTHESIS
+username = os.environ['EPUSER']
+password = os.environ['EPPASSWD']
+url ='https://'+username+':'+password+'@thesis.library.caltech.edu/rest/eprint/'
+
 #Now look at new metadata
-os.environ['DATASET']="GeoThesis"
 records = subprocess.check_output(["dataset","keys"],universal_newlines=True).splitlines()
 count = 0
 for new in records:
-    os.environ['DATASET']="GeoThesis"
-    new_metadata = subprocess.check_output(["dataset","read",new],universal_newlines=True)
+    print("Running")
+    new_metadata = subprocess.check_output(["dataset",'-c','GeoThesis.ds',"read",new],universal_newlines=True)
     new_metadata = json.loads(new_metadata)
-    check_key = new_metadata['Last name']+str(new_metadata['Year'])
-    os.environ['DATASET']="CompletedTheses"
-    completed = subprocess.check_output(['dataset','-c','CompletedTheses','haskey'\
+    check_key = new_metadata['Resolver URL']
+    completed = subprocess.check_output(['dataset','-c','harvest_geo.ds','haskey'\
             ,check_key],universal_newlines=True)
     completed = completed.strip()
     if completed == 'false' and new_metadata['Availability (Public or Restricted)']\
                  == 'Public' and new_metadata['Year'] < 1978:
-        print(len(record_list))
+        #print(len(record_list))
         record_id = record_list[new_metadata["Resolver URL"]]
-        print(record_id)
-        os.environ['DATASET']="s3://dataset.library.caltech.edu/CaltechTHESIS"
-        thesis_metadata =\
-        subprocess.check_output(["dataset","-c","s3://dataset.library.caltech.edu/CaltechTHESIS","read",record_id],universal_newlines=True)
+        #print(record_id)
+        thesis_metadata = subprocess.check_output(["eputil",'-json',url+record_id+'.xml'],universal_newlines=True)
         thesis_metadata = json.loads(thesis_metadata)
+        thesis_metadata = thesis_metadata['eprint'][0]
         output_metadata = {}
         output_text = 'Supplemental Files Information:\n'
         plate = 1
-        #print(thesis_metadata)
-
         #If placement is present, order by placement.
         #Otherwise order by position
         file_list = thesis_metadata['documents']
@@ -152,8 +132,9 @@ for new in records:
                         output_text = output_text + title +'\n'
 
                         creators = []
-                        for c in thesis_metadata['creators']:
-                            name = c['family']+', '+c['given']
+                        for c in thesis_metadata['creators']['items']:
+                            n = c['name']
+                            name = n['family']+', '+n['given']
                             if 'orcid' in c:
                                 creators.append({'creatorName':name\
                                 ,'affiliations':["California Institute of Technology"],\
@@ -302,33 +283,9 @@ for new in records:
                         
                         plate = plate + 1
 
-        output_metadata['additional'] = output_text
-        output_metadata['key'] = new_metadata['Last name']+str(new_metadata['Year'])
-
-        os.environ['DATASET']="CompletedTheses"
-        subprocess.run(['dataset','-i','-','-c','CompletedTheses','create',\
-                    new_metadata['Last name']+str(new_metadata['Year'])],\
-                    input=json.dumps(output_metadata),universal_newlines=True)
-
-        #Google sheet ID for output
-        output_sheet = "12Kag1F70SrkX-qDqOR9ldWx5JTIx7Nfkcn9Iy5M9Me8"
-        sheet_name = "Sheet1"
-        sheet_range = "A1:CZ"
-        subprocess.run(['dataset','-c','CompletedTheses','-overwrite','import-gsheet',\
-                                    output_sheet,sheet_name,sheet_range,'2'])
-        export_list = ".done,.key,.resolver,.subjects,.additional"
-        title_list = "done,key,resolver,subjects,additional"
-        for j in range(1,21):
-            k = str(j)
-            export_list = export_list+',.identifier_'+k+',.description_'+k
-            title_list = title_list+',identifier_'+k+',description_'+k
-
-        subprocess.run(['dataset','-c','CompletedTheses','export-gsheet',\
-                    output_sheet,sheet_name,sheet_range,'true',export_list,title_list])
-
-        #print('dataset','-c','CompletedTheses','export-gsheet',output_sheet,sheet_name,sheet_range,'true',export_list,title_list)
-
         count = count + 1
-        if count == 10:
+        if count == 1:
             exit()
 
+
+        #Neet to run harvest_geo.py to not re-write existing records

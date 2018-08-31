@@ -105,16 +105,10 @@ for h in hits['hits']['hits']:
         error = False
         for e in existing:
             if e['item_number'] == new_number:
-                if e['doi'] == '10.22002/D1.408': 
-                    existing.append(record)
-                    records[resolver] = existing
-                elif e['doi'] == '10.22002/D1.486':
-                    print("486 will be deleted")
-                else:
-                    error=True
-                    print("Same item in CaltechDATA twice")
-                    print(resolver,record['doi'],e['doi'])
-                    exit()
+                error=True
+                print("Same item in CaltechDATA twice")
+                print(resolver,record['doi'],e['doi'])
+                exit()
 
         if error == False:
             existing.append(record)
