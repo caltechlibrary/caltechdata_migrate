@@ -54,7 +54,9 @@ for skey in args.sid:
     lic_f = open("/data/tccon/license.txt","r")
     lic_t = open("/data/tccon/license_tag.txt","r")
     lic = lic_f.read()
-    lic = lic + subprocess.check_output(['get_site_reference',sname]).decode("utf-8").rstrip()
+    cite =\
+    subprocess.check_output(['get_site_reference',skey]).decode("utf-8").rstrip()
+    lic = lic + cite
     lic = lic + '\n\n' + lic_t.read()
     outf = open('LICENSE.txt','w')
     outf.write(lic)
@@ -65,45 +67,16 @@ for skey in args.sid:
                     '/'+sitef[11:15]+'-'+sitef[15:17]+'-'+sitef[17:19]
     metadata['publicationDate'] = datetime.date.today().isoformat()
     metadata['publisher'] = "CaltechDATA"
-    for d in metadata['dates']:
-        if d['dateType'] == 'Collected':
-            d['date'] = cred
-        if d['dateType'] == 'Updated':
-            d['date'] = datetime.date.today().isoformat()
-        if d['dateType'] == 'Created':
-            d['date'] = datetime.date.today().isoformat()
+    today = datetime.date.today().isoformat()
+    metadata['dates'] = [{'dateType':'Collected','date':cred},\
+            {'dateType':'Updated','date':today},\
+            {'dateType':'Created','date':today}]
     contributors = metadata['contributors']
-    for c in contributors:
-        if c['contributorType'] == 'ContactPerson':
-            c['contributorEmail'] = email
-            c['contributorName'] = contact
-        if c['contributorType'] == 'HostingInstitution':
-            c['contributorName'] =='California Institute of Techonolgy, Pasadena, CA (US)'
+    contributors.append({'contributorType':'ContactPerson',\
+            'contributorEmail':email,'contributorName':contact})
+    contributors.append({'contributorType':'HostingInstitution',\
+            'contributorName':'California Institute of Techonolgy, Pasadena, CA (US)'})
     
-    related = metadata['relatedIdentifiers']
-    new = []
-    for r in related:
-        if r['relatedIdentifier']!="http://tccon.ornl.gov/":
-            new.append(r)
-    meta = {"relatedIdentifier":
-        "https://tccon-wiki.caltech.edu/Network_Policy/Data_Use_Policy/Data_Description",
-                "relationType": "IsDocumentedBy",
-                "relatedIdentifierType":"URL"}
-    new.append(meta)
-    meta = {"relatedIdentifier": "https://tccon-wiki.caltech.edu/Sites",
-                "relationType": "IsDocumentedBy",
-                "relatedIdentifierType":"URL"}
-    new.append(meta)
-    meta = {"relatedIdentifier": "http://tccondata.org",
-            "relationType": "IsPartOf",
-            "relatedIdentifierType":"URL"}
-    new.append(meta)
-    meta = {"relatedIdentifier": "10.14291/TCCON.GGG2014",
-            "relationType": "IsPartOf",
-            "relatedIdentifierType":"DOI"}
-    new.append(meta)
-    metadata["relatedIdentifiers"] = new
-
     print(metadata['identifier'])
     response = caltechdata_write(copy.deepcopy(metadata),token,files,production)
     print(response)
@@ -125,7 +98,7 @@ for skey in args.sid:
 
     metadata['rightsList'] = [{'rightsURI':url,'rights':'TCCON Data License'}]
 
-    response = caltechdata_edit(metadata,token,files,production)
+    response = caltechdata_edit(token,new_id,copy.deepcopy(metadata),{},{},production)
     print(response)
 
     for t in metadata['titles']:

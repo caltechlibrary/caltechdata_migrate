@@ -55,7 +55,7 @@ for new in records:
             ,check_key],universal_newlines=True)
     completed = completed.strip()
     if completed == 'false' and new_metadata['Availability (Public or Restricted)']\
-                 == 'Public' and new_metadata['Year'] < 1978:
+            == 'Public': #and new_metadata['Year'] < 1978:
         #print(len(record_list))
         record_id = record_list[new_metadata["Resolver URL"]]
         #print(record_id)
@@ -71,9 +71,10 @@ for new in records:
         pdf_files = []
         for file_info in file_list:
             if file_info['mime_type']=='application/pdf':
-                pdf_files.append(file_info)
+                if file_info['security']=='public':
+                    pdf_files.append(file_info)
 
-        print(pdf_files)
+        #print(pdf_files)
         if 'placement' in pdf_files[0]:
             pdf_files.sort(key=lambda k: k['placement'])
         else:
@@ -104,14 +105,15 @@ for new in records:
                         metadata['publicationYear']=new_metadata['Year']
                         metadata['publisher']='CaltechDATA'
                         metadata['language']='en'
-                        metadata['rightsList'] = [{'rights':"public-domain",
-                        'rightsURI':'http://creativecommons.org/publicdomain/mark/1.0/'}]
-                        #metadata['rightsList'] = [{'rights':"other",
-                        #    'rightsURI':'https://data.caltech.edu/caltechthesis-license'}]
+                        #metadata['rightsList'] = [{'rights':"public-domain",
+                        #'rightsURI':'http://creativecommons.org/publicdomain/mark/1.0/'}]
+                        metadata['rightsList'] = [{'rights':"other",
+                            'rightsURI':'https://data.caltech.edu/caltechthesis-license'}]
 
                         if 'funders' in thesis_metadata:
+                            print(thesis_metadata['funders'])
                             funm = []
-                            for f in thesis_metadata['funders']:
+                            for f in thesis_metadata['funders']['items']:
                                 if 'awardNumber' in f:
                                     funm.append({"funderName":f['agency'],
                                     "awardNumber":f['awardNumber']})
@@ -284,8 +286,8 @@ for new in records:
                         plate = plate + 1
 
         count = count + 1
-        if count == 1:
-            exit()
+        #if count == 1:
+        #    exit()
 
 
         #Neet to run harvest_geo.py to not re-write existing records
