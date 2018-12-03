@@ -16,20 +16,23 @@ def create_doi(metadata,url):
             #test_mode=True
             )
 
-    assert schema40.validate(metadata)
+    result =  schema40.validate(metadata)
     #Debugging if this fails
-    #v = schema40.validator.validate(metadata)
-    #errors = sorted(v.iter_errors(instance),key=lambda e: e.path)
-    #for error in errors:
-    #        print(error.message)
+    if result == False:
+        v = schema40.validator.validate(metadata)
+        errors = sorted(v.iter_errors(instance), key=lambda e: e.path)
+        for error in errors:
+            print(error.message)
+        exit()
 
     xml = schema40.tostring(metadata)
 
     identifier = metadata['identifier']['identifier']
 
-    d.metadata_post(xml)
-    d.doi_post(identifier,url)
-
+    response = d.metadata_post(xml)
+    print(response)
+    response = d.doi_post(identifier,url)
+    print(response)
 
 if __name__ == "__main__":
     with open('example.json') as f:
