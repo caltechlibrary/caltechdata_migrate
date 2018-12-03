@@ -1,0 +1,297 @@
+{
+  "version": "GGG2014.R0",
+  "publicationYear": "2017",
+  "publisher": "CaltechDATA",
+  "language": "en",
+  "rightsList": [
+    {
+      "rights": "TCCON Data Use Policy"
+    }
+  ],
+  "fundingReferences": [
+    {
+      "funderName": "Helmholtz Association of German Research Centres"
+    },
+    {
+      "funderName": "Karlsruhe Institute of Technology"
+    },
+    {
+      "funderName": "Agencia Estatal de Meteorología"
+    }
+  ],
+  "descriptions": [
+    {
+      "description": "The Total Carbon Column Observing Network (TCCON) is a network of ground-based Fourier Transform Spectrometers that record direct solar absorption spectra of the atmosphere in the near-infrared. From these spectra, accurate and precise column-averaged abundances of atmospheric constituents including CO2, CH4, N2O, HF, CO, H2O, and HDO, are retrieved. This data set contains observations from the TCCON station at Izana, Spain.",
+      "descriptionType": "Abstract"
+    }
+  ],
+  "titles": [
+    {
+      "title": "TCCON data from Izana (ES), Release GGG2014.R0"
+    }
+  ],
+  "creators": [
+      {
+          "affiliations": [
+              "Karlsruhe Institute of Technology (KIT), Institute of Meteorology and Climate Research (IMK-ASF), Karlsruhe (DE)"
+          ],
+          "creatorName": "Blumenstock, T.",
+          "familyName": "Blumenstock",
+          "givenName": "Thomas",
+          "nameIdentifiers": [
+              {
+                  "nameIdentifier": "K-2263-2012",
+                  "nameIdentifierScheme": "ResearcherID",
+                  "schemeURI": "http://www.researcherid.com/rid/"
+              }
+          ]
+      },
+      {
+          "affiliations": [
+              "Karlsruhe Institute of Technology (KIT), Institute of Meteorology and Climate Research (IMK-ASF), Karlsruhe (DE)"
+          ],
+          "creatorName": "Hase, F.",
+          "familyName": "Hase",
+          "givenName": "Frank",
+          "nameIdentifiers": [
+              {
+                  "nameIdentifier": "0000-0001-7307-6266",
+                  "nameIdentifierScheme": "ORCID",
+                  "schemeURI": "http://orcid.org/"
+              },
+              {
+                  "nameIdentifier": "A-7497-2013",
+                  "nameIdentifierScheme": "ResearcherID",
+                  "schemeURI": "http://www.researcherid.com/rid/"
+              }
+          ]
+      },
+      {
+          "affiliations": [
+              "Karlsruhe Institute of Technology (KIT), Institute of Meteorology and Climate Research (IMK-ASF), Karlsruhe (DE)"
+          ],
+          "creatorName": "Schneider, M.",
+          "familyName": "Schneider",
+          "givenName": "Matthias",
+          "nameIdentifiers": [
+              {
+                  "nameIdentifier": "0000-0001-8452-0035",
+                  "nameIdentifierScheme": "ORCID",
+                  "schemeURI": "http://orcid.org/"
+              },
+              {
+                  "nameIdentifier": "B-1441-2013",
+                  "nameIdentifierScheme": "ResearcherID",
+                  "schemeURI": "http://www.researcherid.com/rid/"
+              }
+          ]
+      },
+      {
+          "affiliations": [
+              "Izaña Atmospheric Research Center, Agencia Estatal de Meteorología (AEMET), Santa Cruz de Tenerife (ES)"
+          ],
+          "creatorName": "García, O. E.",
+          "familyName": "García",
+          "givenName": "Omaira E."
+      },
+      {
+          "affiliations": [
+              "Izaña Atmospheric Research Center, Agencia Estatal de Meteorología (AEMET), Santa Cruz de Tenerife (ES)"
+          ],
+          "creatorName": "Sepúlveda, E.",
+          "familyName": "Sepúlveda",
+          "givenName": "Eliezer"
+      }
+  ],
+  "formats": [
+      "application/x-netcdf"
+  ],
+  "dates": [
+    {
+      "date": "2014-10-10",
+      "dateType": "Created"
+    },
+    {
+      "date": "2017-03-01",
+      "dateType": "Updated"
+    },
+    {
+      "date": "2007-05-18/2016-06-30",
+      "dateType": "Collected"
+    }
+  ],
+  "subjects": [
+    {
+      "subject": "atmospheric trace gases"
+    },
+    {
+      "subject": " CO2"
+    },
+    {
+      "subject": " CH4"
+    },
+    {
+      "subject": " CO"
+    },
+    {
+      "subject": " N2O"
+    },
+    {
+      "subject": " column-averaged dry-air mole fractions"
+    },
+    {
+      "subject": " remote sensing"
+    },
+    {
+      "subject": " FTIR spectroscopy"
+    },
+    {
+      "subject": " TCCON"
+    }
+  ],
+  "geoLocations": [{"geoLocationPlace": "Izana, Tenerife (ES)",
+                    "geoLocationPoint": {"pointLatitude": 28.3,
+                                         "pointLongitude": -16.5}}],
+  "resourceType": {
+    "resourceTypeGeneral": "Dataset"
+  },
+  "alternateIdentifiers": [
+    {
+      "alternateIdentifierType": "Software_Version",
+      "alternateIdentifier": "GGG2014"
+    },
+    {
+      "alternateIdentifierType": "id",
+      "alternateIdentifier": "iz"
+    },
+    {
+      "alternateIdentifierType": "longName",
+      "alternateIdentifier": "izana01"
+    },
+    {
+      "alternateIdentifierType": "Data_Revision",
+      "alternateIdentifier": "R0"
+    }
+  ],
+  "relatedIdentifiers": [
+    {
+      "relatedIdentifierType": "DOI",
+      "relatedIdentifier": "10.14291/tccon.ggg2014.documentation.R0/1221662",
+      "relationType": "IsDocumentedBy"
+    },
+    {
+      "relatedIdentifierType": "DOI",
+      "relatedIdentifier": "10.5194/amt-9-683-2016",
+      "relationType": "IsCitedBy"
+    },
+    {
+      "relatedIdentifierType": "DOI",
+      "relatedIdentifier": "10.5194/amt-9-227-2016",
+      "relationType": "IsCitedBy"
+    },
+    {
+      "relatedIdentifierType": "DOI",
+      "relatedIdentifier": "10.5194/acp-16-14003-2016",
+      "relationType": "IsCitedBy"
+    },
+    {
+      "relatedIdentifierType": "DOI",
+      "relatedIdentifier": "10.5194/acp-15-13023-2015",
+      "relationType": "IsCitedBy"
+    },
+    {
+      "relatedIdentifierType": "DOI",
+      "relatedIdentifier": "10.1002/2015JD023389",
+      "relationType": "IsCitedBy"
+    },
+    {
+      "relatedIdentifierType": "DOI",
+      "relatedIdentifier": "10.5194/acp-16-12005-2016",
+      "relationType": "IsCitedBy"
+    },
+    {
+      "relatedIdentifierType": "DOI",
+      "relatedIdentifier": "10.5194/amt-9-4843-2016",
+      "relationType": "IsCitedBy"
+    },
+    {
+      "relatedIdentifierType": "DOI",
+      "relatedIdentifier": "10.5194/acp-16-1653-2016",
+      "relationType": "IsCitedBy"
+    },
+    {
+      "relatedIdentifierType": "DOI",
+      "relatedIdentifier": "10.5194/amt-9-3491-2016",
+      "relationType": "IsCitedBy"
+    },
+    {
+      "relatedIdentifierType": "DOI",
+      "relatedIdentifier": "10.1002/2015JD024157",
+      "relationType": "IsCitedBy"
+    },
+    {
+      "relatedIdentifierType": "URL",
+      "relatedIdentifier": "https://tccon-wiki.caltech.edu/Network_Policy/Data_Use_Policy/Data_Description",
+      "relationType": "IsDocumentedBy"
+    },
+    {
+      "relatedIdentifierType": "URL",
+      "relatedIdentifier": "https://tccon-wiki.caltech.edu/Sites",
+      "relationType": "IsDocumentedBy"
+    },
+    {
+      "relatedIdentifierType": "DOI",
+      "relatedIdentifier": "10.14291/TCCON.GGG2014",
+      "relationType": "IsPartOf"
+    }
+  ],
+  "identifier": {
+    "identifierType": "DOI",
+    "identifier": "10.33569/TESTING"
+  },
+  "contributors": [
+    {
+      "contributorName": "California Institute of Techonolgy, Pasadena, CA (US)",
+      "nameIdentifiers": [
+        {
+          "nameIdentifier": "grid.20861.3d",
+          "nameIdentifierScheme": "GRID"
+        }
+      ],
+      "contributorType": "HostingInstitution"
+    },
+    {
+      "contributorName": "Roehl, C. M.",
+      "affiliations": [
+        "California Institute of Technology, Pasadena, CA (US)"
+      ],
+      "nameIdentifiers": [
+        {
+          "nameIdentifier": "0000-0001-5383-8462",
+          "nameIdentifierScheme": "ORCID"
+        }
+      ],
+      "contributorType": "DataCurator"
+    },
+    {
+      "contributorName": "Groß, J.",
+      "affiliations": [
+        "Karlsruhe Institute of Technology (KIT), Institute of Meteorology and Climate Research (IMK-ASF), Karlsruhe (DE)"
+      ],
+      "contributorType": "Other"
+    },
+    {
+      "contributorName": "Blumenstock, T.",
+      "affiliations": [
+        "Karlsruhe Institute of Technology (KIT), Institute of Meteorology and Climate Research (IMK-ASF), Karlsruhe (DE)"
+      ],
+      "nameIdentifiers": [
+        {
+          "nameIdentifier": "K-2263-2012",
+          "nameIdentifierScheme": "ResearcherID"
+        }
+      ],
+      "contributorType": "ContactPerson"
+    }
+  ]
+}

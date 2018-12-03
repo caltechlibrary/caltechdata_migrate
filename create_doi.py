@@ -2,16 +2,17 @@ import os,json
 from datacite import DataCiteMDSClient, schema40
 
 
-def create_doi(doi,metadata,url):
+def create_doi(metadata,url):
 
-    password = os.environ['EZID_PWD']
-    prefix = '10.14291'
+    password = os.environ['DATACITE']
+    prefix = '10.33569'
 
     # Initialize the MDS client.
     d = DataCiteMDSClient(
             username='CALTECH.LIBRARY',
             password=password,
             prefix=prefix,
+            url='https://mds.test.datacite.org'
             #test_mode=True
             )
 
@@ -28,3 +29,9 @@ def create_doi(doi,metadata,url):
 
     d.metadata_post(xml)
     d.doi_post(identifier,url)
+
+
+if __name__ == "__main__":
+    with open('example.json') as f:
+        metadata = json.load(f)
+    create_doi(metadata,'https://library.caltech.edu')
