@@ -1,36 +1,30 @@
 import os,json
 from datacite import DataCiteMDSClient, schema40
-from EZID import EZIDClient
 
 
 def create_doi(doi,metadata,url):
 
-    SERVER = "https://ezid.cdlib.org"
-    ez=EZIDClient(SERVER,
-    credentials={'username':os.environ['EZID_USER'],
-    'password':os.environ['EZID_PWD']})
-    sid = ez.login()
+    password = os.environ['EZID_PWD']
+    prefix = '10.14291'
+
+    # Initialize the MDS client.
+    d = DataCiteMDSClient(
+            username='CALTECH.LIBRARY',
+            password=password,
+            prefix=prefix,
+            #test_mode=True
+            )
 
     assert schema40.validate(metadata)
     #Debugging if this fails
     #v = schema40.validator.validate(metadata)
-    #errors = sorted(v.iter_errors(instance), key=lambda e: e.path)
+    #errors = sorted(v.iter_errors(instance),key=lambda e: e.path)
     #for error in errors:
     #        print(error.message)
 
     xml = schema40.tostring(metadata)
 
-    #should verify that doi is in the form 10.xxx
-    resp = ez.create('doi:'+doi,{'datacite':xml})
-    print(resp)
-    resp = ez.update('doi:'+doi,{'_target':url})
-    print(resp)
+    identifier = metadata['identifier']['identifier']
 
-#resp = ez.mint('doi:10.5072/FK2', {'datacite':xml})
-#resp = ez.mint('doi:10.5072/FK2',{'datacite.title': 'test title',
-#        'datacite.creator': 'mer','datacite.publisher':
-#        'CD','datacite.publicationyear':'2017','datacite.resourcetype':'Dataset'})
-#print(resp)
-
-#resp = ez.update(doi,{'_target':head+dsplit[2].lower()})
-
+    d.metadata_post(xml)
+    d.doi_post(identifier,url)
