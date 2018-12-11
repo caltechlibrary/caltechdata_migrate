@@ -1,23 +1,30 @@
 import os,subprocess,json,csv
+import dataset
+from ames.harvesters import get_caltechfeed
+
+if os.path.isdir('data') == False:
+    os.mkdir('data')
+os.chdir('data')
+
+get_caltechfeed('thesis')
 
 record_list = {}
+collection = 'thesis.ds'
+keys = dataset.keys(collection)
 count = 0
-url = 'https://thesis.library.caltech.edu/rest/eprint/'
-keys =\
-subprocess.check_output(["eputil",'-json',url],universal_newlines=True)
-keys = json.loads(keys)
-username = os.environ['EPUSER']
-password = os.environ['EPPASSWD']
-url =\
-'https://'+username+':'+password+'@thesis.library.caltech.edu/rest/eprint/'
 for k in keys:
     count = count + 1
     if count % 100 == 0:
         print(count)
-    metadata =subprocess.check_output(["eputil",'-json',url+str(k)+'.xml'],universal_newlines=True)
-    metadata = json.loads(metadata)
+    metadata,err = dataset.read(collection,k)
+    if err != '':
+        print("Error on read ",err)
+        exit()
     if metadata != {}:
-        record_list[k]=metadata['eprint'][0]['official_url']
+        if 'official_url' in metadata:
+            record_list[k]=metadata['official_url']
+        else:
+            print("Missing URL",metadata)
     else:
         print("Bad Record: "+k)
         print(metadata)
