@@ -10,6 +10,7 @@ def get_num(record):
     return record['item_number']
 
 collection = 'harvest_geo.ds'
+orig_collection = 'GeoThesis.ds'
 
 #Nothing in this collection gets saved
 if os.path.isdir(collection) == True:
@@ -26,13 +27,6 @@ response = requests.get(url+'/?size=1000&q=resourceType.resourceTypeGeneral:Imag
 hits = response.json()
 
 records = {}
-
-#Update completed records
-os.system("rm -rf GeoThesis.ds")
-os.system("dataset init GeoThesis.ds")
-os.environ['GOOGLE_CLIENT_SECRET_JSON']="/etc/client_secret.json"
-orig_collection = 'GeoThesis.ds'
-os.system("dataset GeoThesis.ds import-gsheet '1Wf4npmEWucCPJ-Ly1Vr6fzZvo1Y_kz7iTahmV9UmVHE' 'Sheet1' 'A:CZ' 3")
 
 for h in hits['hits']['hits']:
     rid = str(h['id'])
@@ -86,8 +80,13 @@ for h in hits['hits']['hits']:
             if 'geoLocationPlace' in g:
                 geo = geo + 'Geographic Location Place: '+g['geoLocationPlace']
 
-    origional = dataset.read(orig_collection,resolver)[0]
-    linked = origional['Linked']
+    origional,err = dataset.read(orig_collection,resolver)
+    if err != '':
+        print(err)
+    if 'Linked' in origional:
+        linked = origional['Linked']
+    else:
+        linked = ''
 
     record = {'doi':doi,'item_title':item_title,'title':title,
             'item_number':item_number,'subjects':subjects,
@@ -108,7 +107,6 @@ for h in hits['hits']['hits']:
                 error=True
                 print("Same item in CaltechDATA twice")
                 print(resolver,record['doi'],e['doi'])
-                exit()
 
         if error == False:
             existing.append(record)
@@ -146,6 +144,8 @@ for j in range(1,21):
     export_list.append('.identifier_'+k)
     export_list.append('.description_'+k)
 dataset.use_strict_dotpath(False)
-response = dataset.export_gsheet(collection,client_secret,output_sheet,sheet_name,sheet_range,'true',dot_exprs=export_list)
+keys = dataset.keys(collection)
+dataset.frame(collection,'exportf',keys,export_list)
+response = dataset.export_gsheet(collection,'exportf',output_sheet,sheet_name,sheet_range)
 print("Export: ",response)
 

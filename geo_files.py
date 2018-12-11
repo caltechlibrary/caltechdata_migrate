@@ -9,34 +9,36 @@ import dataset
 # [instructions](https://github.com/caltechlibrary/dataset/blob/master/docs/dataset/import-gsheet.md)
 # Set up aws 
 
-os.system("rm -rf GeoThesis.ds")
-os.system("dataset init GeoThesis.ds")
+collection="GeoThesis.ds"
+os.system("rm -rf "+collection)
+dataset.init(collection)
 
-os.environ['GOOGLE_CLIENT_SECRET_JSON']="/etc/client_secret.json"
-os.environ['AWS_SDK_LOAD_CONFIG']="1"
+client_secret="/etc/client_secret.json"
 
 print("Importing")
 
-os.environ['DATASET']="GeoThesis.ds"
-os.system("dataset import-gsheet '1Wf4npmEWucCPJ-Ly1Vr6fzZvo1Y_kz7iTahmV9UmVHE' 'Sheet1' 'A:CZ' 3")
+collection="GeoThesis.ds"
+sheet = '1Wf4npmEWucCPJ-Ly1Vr6fzZvo1Y_kz7iTahmV9UmVHE'
+err = dataset.import_gsheet(collection,sheet,'Sheet1',3,'A:CZ')
+print(err)
 
 print("Imported")
 
 token = os.environ['TINDTOK']
 
 #Set up dictionary of thesis links
-available = os.path.isfile('record_list.csv')
+available = os.path.isfile('data/record_list.csv')
 if available == False:
     print("You need to run update_thesis_file.py")
     exit()
 else:
     record_list = {}
-    reader=csv.reader(open("record_list.csv"))
+    reader=csv.reader(open("data/record_list.csv"))
     for row in reader:
         record_list[row[1]] = row[0]
 
 #If we want to replace a record, put number here
-records_to_edit = []
+records_to_edit = [1140,1141,1142]
 
 #Connection to CaltechTHESIS
 username = os.environ['EPUSER']
@@ -44,18 +46,18 @@ password = os.environ['EPPASSWD']
 url ='https://'+username+':'+password+'@thesis.library.caltech.edu/rest/eprint/'
 
 #Now look at new metadata
-records = subprocess.check_output(["dataset","keys"],universal_newlines=True).splitlines()
+harvest_collection = 'harvest_geo.ds'
+records= dataset.keys(collection)
 count = 0
 for new in records:
     print("Running")
-    new_metadata = subprocess.check_output(["dataset",'-c','GeoThesis.ds',"read",new],universal_newlines=True)
-    new_metadata = json.loads(new_metadata)
+    new_metadata,err = dataset.read(collection,new)
+    if err != '':
+        print(err)
     check_key = new_metadata['Resolver URL']
-    completed = subprocess.check_output(['dataset','-c','harvest_geo.ds','haskey'\
-            ,check_key],universal_newlines=True)
-    completed = completed.strip()
-    if completed == 'false' and new_metadata['Availability (Public or Restricted)']\
-            == 'Public': #and new_metadata['Year'] < 1978:
+    completed = dataset.has_key(harvest_collection,new)
+    if completed == False and new_metadata['Availability (Public or Restricted)']\
+            == 'Public':# and new_metadata['Year'] < 1978:
         #print(len(record_list))
         record_id = record_list[new_metadata["Resolver URL"]]
         #print(record_id)
@@ -279,15 +281,8 @@ for new in records:
                             response = caltechdata_write(metadata,token,fname,True)
                             print(response)
 
-                        num = response.split('records/')[1].split('.')[0]
-                        identifier = 'https://doi.org/10.22002/D1.'+str(num)
-                        output_metadata['identifier_'+plate_num]=identifier
-                        
                         plate = plate + 1
 
         count = count + 1
-        #if count == 1:
-        #    exit()
-
 
         #Neet to run harvest_geo.py to not re-write existing records
