@@ -1,34 +1,28 @@
-from caltechdata_api import caltechdata_edit 
+from caltechdata_api import get_metadata,caltechdata_edit 
 import os
 
-dates = ['1914', '1933', '1935/1939', '1944/1945', '1948',
-        '1954/1955','1957/1961', '1963', '1965/1976', '1978/1980']
-locations = ['Mountain Creek','Niobrara River','American Canal','Colorado River','Hii River','Middle Loup River',
-        'Rio Grande River','Canal','Atchafalaya River','Mississippi River','Red River','Rio Grande near Bernalillo, NM',
-        'River, Portugal Rivers','Chop Canals','N Saskatchewan River and Elbow River',
-        'South American River and Canal / Rio Magdelena and Canal de Dique','Oak Creek, Oregon','Trinity River',
-        'Rio Grande Conveyance Channel','Snake and Clearwater River','Missouri River','ACOP Canal']
-
-idv = 943
+idvs = [1163,1164,1165,1166,1167,1168,1169]
 
 #Get access token from TIND sed as environment variable with source token.bash
 token = os.environ['TINDTOK']
 
 metadata = {}
 
-date_list = [{'date':'2018-05-17','dateType':'Available'}]
+for idv in idvs:
 
-for d in dates:
-    date_list.append({'date':d,'dateType':'Collected'})
+    metadata = get_metadata(idv)
 
-metadata['dates'] = date_list
+    new_description = {'descriptionType':'Other','description':'''
+    Cataloger’s note: Engel, Rene. I. Geology of the Southwest quarter of the Elsinore Quadrangle (1933). No copies [of this thesis] have ever been presented to C.I.T. The thesis has been published under the title: Geology of the Lake Elsinore Quadrangle, California (in Bulletin no. 146 of the California Division of Mines).
 
-geolocations = []
+ …Bulletin 146, a book containing two papers: Geology and Mineral Deposits of the Lake Elsinore Quadrangle, California, prepared by Rene Engel, and Mineral Deposits of Lake Elsinore Quadrangle, California by• Rene Engel, Thomas E. Gay, Jr., and B. L. Rogers. The principal author, Dr. Engel, first began studying the geology of this area in detail in the 1920's; he has been working with it intermittently since then.</p>
+ The second paper, which is primarily concerned with the economic mineral deposits of the area, was compiled by two staff members of the Division of Mines, Messrs. Gay and Rogers, working under the supervision of Dr. Engel….
 
-for l in locations:
-    geolocations.append({'geoLocationPlace':l})
+ 7 plates included in the Bulletin have also been scanned and included as part
+ of this record.'''}
 
-metadata['geoLocations'] = geolocations
+    metadata['descriptions'].append(new_description)
+    metadata['dates'].append({'dateType':'Created','date':'1959'})
 
-
-caltechdata_edit(token,idv,metadata,production=True)
+    response = caltechdata_edit(token,idv,metadata,production=True)
+    print(response)

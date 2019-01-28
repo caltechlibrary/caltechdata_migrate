@@ -9,8 +9,14 @@ import dataset
 def get_num(record):
     return record['item_number']
 
+orig_collection="GeoThesis.ds"
+sheet = '1Wf4npmEWucCPJ-Ly1Vr6fzZvo1Y_kz7iTahmV9UmVHE'
+err = dataset.import_gsheet(orig_collection,sheet,'Sheet1',3,'A:CZ')
+if err != '':
+    print(err)
+    exit()
+
 collection = 'harvest_geo.ds'
-orig_collection = 'GeoThesis.ds'
 
 #Nothing in this collection gets saved
 if os.path.isdir(collection) == True:
@@ -127,7 +133,7 @@ for resolver in records:
         if r['dates'] != '':
             output_str = output_str + 'Date(s) Collected: ' +r['dates']+'\n'
         if r['geo'] != '':
-            output_str = output_str + geo
+            output_str = output_str + r['geo']
         output['subjects'] = r['subjects']
         output['linked'] = r['linked']
     output['additional'] = output_str
