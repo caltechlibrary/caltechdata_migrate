@@ -51,72 +51,79 @@ for h in hits['hits']['hits']:
             print(error.message)
         exit()
     
-    doi = metadata['identifier']['identifier']
-    resolver = metadata['relatedIdentifiers'][0]['relatedIdentifier']
-    title = metadata['titles'][0]['title']
-    item_title = title.split(': Supplement ')[0]
-    #print(title)
-    item_number = title.split(': Supplement ')[1].split(' ')[0]
-    #print(item_number)
+    is_thesis = False
     subjects = ''
     for s in metadata['subjects']:
+        subject = s['subject']
+        if subject == 'thesis':
+            is_thesis = True
         subjects = subjects + s['subject'] + ','
-    subjects = subjects[0:-1]
-    dates = ''
-    for d in metadata['dates']:
-        if d['dateType'] == 'Collected':
-            dates = dates + d['date'] +','
-    dates = dates[0:-1]
-    geo = ''
-    if 'geoLocations' in metadata:
-        loc = metadata['geoLocations']
-        for g in loc:
-            if 'geoLocationBox' in g:
-                box = g['geoLocationBox']
-                geo = geo + 'Geographic Location Bounding Box: '\
-                + str(box['eastBoundLongitude']) + ' Degrees East; '\
-                + str(box['westBoundLongitude']) + ' Degrees West; '\
-                + str(box['northBoundLatitude']) + ' Degrees North; '\
-                + str(box['southBoundLatitude']) + ' Degrees South\n'
-            if 'geoLocationPoint' in g:
-                box = g['geoLocationPoint']
-                geo = geo + 'Geographic Location Point: '\
-                + str(box['pointLongitude']) + ' Degrees Longitude; '\
-                + str(box['pointLatitude']) + ' Degrees Latitude\n'
-            if 'geoLocationPlace' in g:
-                geo = geo + 'Geographic Location Place: '+g['geoLocationPlace']
+        subjects = subjects[0:-1]
 
-    origional,err = dataset.read(orig_collection,resolver)
-    if err != '':
-        print(err)
-    if 'Linked' in origional:
-        linked = origional['Linked']
-    else:
-        linked = ''
+    if is_thesis == True:
 
-    record = {'doi':doi,'item_title':item_title,'title':title,
+        doi = metadata['identifier']['identifier']
+        resolver = metadata['relatedIdentifiers'][0]['relatedIdentifier']
+        title = metadata['titles'][0]['title']
+        item_title = title.split(': Supplement ')[0]
+        #print(title)
+        item_number = title.split(': Supplement ')[1].split(' ')[0]
+        #print(item_number)
+        dates = ''
+        for d in metadata['dates']:
+            if d['dateType'] == 'Collected':
+                dates = dates + d['date'] +','
+        dates = dates[0:-1]
+        geo = ''
+        if 'geoLocations' in metadata:
+            loc = metadata['geoLocations']
+            for g in loc:
+                if 'geoLocationBox' in g:
+                    box = g['geoLocationBox']
+                    geo = geo + 'Geographic Location Bounding Box: '\
+                    + str(box['eastBoundLongitude']) + ' Degrees East; '\
+                    + str(box['westBoundLongitude']) + ' Degrees West; '\
+                    + str(box['northBoundLatitude']) + ' Degrees North; '\
+                    + str(box['southBoundLatitude']) + ' Degrees South\n'
+                if 'geoLocationPoint' in g:
+                    box = g['geoLocationPoint']
+                    geo = geo + 'Geographic Location Point: '\
+                    + str(box['pointLongitude']) + ' Degrees Longitude; '\
+                    + str(box['pointLatitude']) + ' Degrees Latitude\n'
+                if 'geoLocationPlace' in g:
+                    geo = geo + 'Geographic Location Place: '+g['geoLocationPlace']
+
+        origional,err = dataset.read(orig_collection,resolver)
+        if err != '':
+            print(err)
+        if 'Linked' in origional:
+            linked = origional['Linked']
+        else:
+            linked = ''
+
+        record = {'doi':doi,'item_title':item_title,'title':title,
             'item_number':item_number,'subjects':subjects,
             'dates':dates,'geo':geo,'linked':linked}
         
-    result = resolver in records
-    if result == False:
+        result = resolver in records
+        if result == False:
     
-        records[resolver] = [record]
+            records[resolver] = [record]
 
-    #We need to figure out if we have a problem
-    else:
-        existing = records[resolver]
-        new_number = record['item_number']
-        error = False
-        for e in existing:
-            if e['item_number'] == new_number:
-                error=True
-                print("Same item in CaltechDATA twice")
-                print(resolver,record['doi'],e['doi'])
+        #We need to figure out if we have a problem
+        else:
+            existing = records[resolver]
+            new_number = record['item_number']
+            error = False
+            for e in existing:
+                if e['item_number'] == new_number:
+                    error=True
+                    print("Same item in CaltechDATA twice")
+                    print(resolver,record['doi'],e['doi'])
 
-        if error == False:
-            existing.append(record)
-            records[resolver] = existing
+            if error == False:
+                existing.append(record)
+                records[resolver] = existing
 
 for resolver in records:
     record = records[resolver]

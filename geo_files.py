@@ -56,7 +56,7 @@ for new in records:
         print(err)
     check_key = new_metadata['Resolver URL']
     completed = dataset.has_key(harvest_collection,new)
-    if completed == False and new_metadata['Availability (Public or Restricted)'] == 'Public' and new_metadata['Year'] < 1978:
+    if completed == False and new_metadata['Availability (Public or Restricted)'] == 'Public' and new_metadata['Year'] > 1978:
         #print(len(record_list))
         record_id = record_list[new_metadata["Resolver URL"]]
         #print(record_id)
@@ -106,10 +106,10 @@ for new in records:
                         metadata['publicationYear']=new_metadata['Year']
                         metadata['publisher']='CaltechDATA'
                         metadata['language']='en'
-                        metadata['rightsList'] = [{'rights':"public-domain",
-                        'rightsURI':'http://creativecommons.org/publicdomain/mark/1.0/'}]
-                        #metadata['rightsList'] = [{'rights':"other",
-                        #    'rightsURI':'https://data.caltech.edu/caltechthesis-license'}]
+                        #metadata['rightsList'] = [{'rights':"public-domain",
+                        #'rightsURI':'http://creativecommons.org/publicdomain/mark/1.0/'}]
+                        metadata['rightsList'] = [{'rights':"other",
+                            'rightsURI':'https://data.caltech.edu/caltechthesis-license'}]
 
                         if 'funders' in thesis_metadata:
                             print(thesis_metadata['funders'])
