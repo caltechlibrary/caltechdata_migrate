@@ -9,7 +9,7 @@ os.chdir('data')
 get_caltechfeed('thesis')
 
 record_list = {}
-collection = 'thesis.ds'
+collection = 'CaltechTHESIS.ds'
 keys = dataset.keys(collection)
 count = 0
 for k in keys:
