@@ -161,12 +161,13 @@ for new in records:
                                 else:
                                     dates.append({"date":new_metadata[label],"dateType":"Collected"})
                                 output_text = output_text + 'Date(s) Collected: '+str(new_metadata[label])+'\n'
-                        dates.append({"date":datetime.date.today().isoformat(),"dateType":"Issued"})
+                        dates.append({"date":datetime.date.today().isoformat(),"dateType":"Updated"})
                         if 'thesis_defense_date' in thesis_metadata:
                             dates.append({"date":thesis_metadata['thesis_defense_date'],"dateType":"Accepted"})
                         if 'datestamp' in thesis_metadata:
                             datev = thesis_metadata['datestamp'].split(' ')[0]
                             dates.append({"date":datev,"dateType":"Available"})
+                        dates.append({"date":thesis_metadata['date'],"dateType":"Issued"})
                         metadata['dates'] = dates
 
                         sub = []
