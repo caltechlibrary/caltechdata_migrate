@@ -1,12 +1,6 @@
 import os,subprocess,json,csv
-import dataset
+from py_dataset import dataset
 from ames.harvesters import get_caltechfeed
-
-if os.path.isdir('data') == False:
-    os.mkdir('data')
-os.chdir('data')
-
-get_caltechfeed('thesis')
 
 record_list = {}
 collection = 'CaltechTHESIS.ds'

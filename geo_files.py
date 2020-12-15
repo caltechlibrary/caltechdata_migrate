@@ -1,9 +1,8 @@
 import os,subprocess,json,csv,datetime
 import requests
-from clint.textui import progress
 from caltechdata_api import caltechdata_write
 from caltechdata_api import caltechdata_edit
-import dataset
+from py_dataset import dataset
 # Requires Dataset
 # Set up the google sheets "client_secret"  following these
 # [instructions](https://github.com/caltechlibrary/dataset/blob/master/docs/dataset/import-gsheet.md)
@@ -27,15 +26,17 @@ print("Imported")
 token = os.environ['TINDTOK']
 
 #Set up dictionary of thesis links
-available = os.path.isfile('data/record_list.csv')
+available = os.path.isfile('record_list.csv')
 if available == False:
     print("You need to run update_thesis_file.py")
     exit()
 else:
     record_list = {}
-    reader=csv.reader(open("data/record_list.csv"))
+    reader=csv.reader(open("record_list.csv"))
     for row in reader:
-        record_list[row[1]] = row[0]
+        print(row[1])
+        rid = row[1].split('caltech.edu/')[1]
+        record_list[rid] = row[0]
 
 #If we want to replace a record, put number here
 records_to_edit = []
@@ -50,16 +51,16 @@ harvest_collection = 'harvest_geo.ds'
 records= dataset.keys(collection)
 count = 0
 for new in records:
-    print("Running")
     new_metadata,err = dataset.read(collection,new)
     if err != '':
         print(err)
     check_key = new_metadata['Resolver URL']
     completed = dataset.has_key(harvest_collection,new)
-    if completed == False and new_metadata['Availability (Public or Restricted)'] == 'Public' and new_metadata['Year'] > 1978:
+    if completed == False and new_metadata['Availability'] != 'yes' and new_metadata['Availability'] != 'Public - HOLD':
         #print(len(record_list))
-        record_id = record_list[new_metadata["Resolver URL"]]
-        #print(record_id)
+        rid = new_metadata["Resolver URL"].split('caltech.edu/')[1]
+        record_id = record_list[rid]
+        print(record_id)
         thesis_metadata = subprocess.check_output(["eputil",'-json',url+record_id+'.xml'],universal_newlines=True)
         thesis_metadata = json.loads(thesis_metadata)
         thesis_metadata = thesis_metadata['eprint'][0]
@@ -93,8 +94,7 @@ for new in records:
                             fname = split[0]+'.pdf'
                         with open(fname, 'wb') as f:
                             total_length = int(r.headers.get('content-length'))
-                            for chunk in \
-                            progress.bar(r.iter_content(chunk_size=1024),expected_size=(total_length/1024) + 1):
+                            for chunk in r.iter_content(chunk_size=1024):
                                 if chunk:
                                     f.write(chunk)
                             f.close()

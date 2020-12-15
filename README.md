@@ -16,4 +16,4 @@ edit_R0.py, edit_R1.py, monthly_update.py - Edit a bunch of CaltechDATA records
 add_license.py - Add file to CaltechDATA records
 update_license.py - Update a file in CaltechDATA records
 make_table.py, update_big_license.py - Wrangle metadata
-
+geo_files,py, harvest_geo.py - Adds geology theses plates to CaltechDATA. Requires py_dataset 0.0.68

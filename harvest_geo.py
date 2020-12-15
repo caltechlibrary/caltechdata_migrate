@@ -1,10 +1,9 @@
 import os,json,subprocess
 import requests
 from datacite import schema40
-from clint.textui import progress
 from caltechdata_api import decustomize_schema
 from operator import attrgetter
-import dataset
+from py_dataset import dataset
 
 def get_num(record):
     return record['item_number']
@@ -42,15 +41,6 @@ for h in hits['hits']['hits']:
     
     print(metadata['identifier']['identifier'])
 
-    try:
-        assert schema40.validate(metadata)
-    except AssertionError:
-        v = schema40.validator.validate(metadata)
-        errors = sorted(v.iter_errors(instance), key=lambda e:e.path)
-        for error in errors:
-            print(error.message)
-        exit()
-    
     is_thesis = False
     subjects = ''
     for s in metadata['subjects']:
@@ -58,7 +48,7 @@ for h in hits['hits']['hits']:
         if subject == 'thesis':
             is_thesis = True
         subjects = subjects + s['subject'] + ','
-        subjects = subjects[0:-1]
+    subjects = subjects[0:-1]
 
     if is_thesis == True:
 
